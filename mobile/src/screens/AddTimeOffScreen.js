@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Button, Menu, TextInput } from 'react-native-paper';
-import DatePicker from 'react-native-date-picker';
+import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
+import { TextInput, Button, Menu } from 'react-native-paper';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { getActiveEmployees, createTimeOff } from '../services/api';
+import { formatDateForDisplay } from '../utils/dateFormatter';
+import { getErrorMessage } from '../utils/errorHandler';
 
 const TIME_OFF_TYPES = ['SICK_LEAVE', 'CASUAL_LEAVE', 'HOLIDAY', 'UNPAID_LEAVE'];
 
@@ -26,9 +28,11 @@ export default function AddTimeOffScreen({ navigation }) {
   const loadEmployees = async () => {
     try {
       const response = await getActiveEmployees();
-      setEmployees(response.data);
+      setEmployees(response.data || []);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load employees');
+      const errorMessage = getErrorMessage(error, 'Failed to load employees');
+      Alert.alert('Error', errorMessage);
+      setEmployees([]);
     }
   };
 
@@ -58,7 +62,8 @@ export default function AddTimeOffScreen({ navigation }) {
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to add time off');
+      const errorMessage = getErrorMessage(error, 'Failed to add time off');
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -122,7 +127,7 @@ export default function AddTimeOffScreen({ navigation }) {
           onPress={() => setShowStartDatePicker(true)}
           style={styles.input}
         >
-          Start Date: {startDate.toLocaleDateString('en-IN')}
+          Start Date: {formatDateForDisplay(startDate)}
         </Button>
 
         <Button
@@ -130,7 +135,7 @@ export default function AddTimeOffScreen({ navigation }) {
           onPress={() => setShowEndDatePicker(true)}
           style={styles.input}
         >
-          End Date: {endDate.toLocaleDateString('en-IN')}
+          End Date: {formatDateForDisplay(endDate)}
         </Button>
 
         <TextInput
@@ -143,29 +148,33 @@ export default function AddTimeOffScreen({ navigation }) {
           style={styles.input}
         />
 
-        <DatePicker
-          modal
-          open={showStartDatePicker}
-          date={startDate}
-          mode="date"
-          onConfirm={(date) => {
-            setShowStartDatePicker(false);
-            setStartDate(date);
-          }}
-          onCancel={() => setShowStartDatePicker(false)}
-        />
+        {showStartDatePicker && (
+          <DateTimePicker
+            value={startDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(event, selectedDate) => {
+              setShowStartDatePicker(Platform.OS === 'ios');
+              if (selectedDate) {
+                setStartDate(selectedDate);
+              }
+            }}
+          />
+        )}
 
-        <DatePicker
-          modal
-          open={showEndDatePicker}
-          date={endDate}
-          mode="date"
-          onConfirm={(date) => {
-            setShowEndDatePicker(false);
-            setEndDate(date);
-          }}
-          onCancel={() => setShowEndDatePicker(false)}
-        />
+        {showEndDatePicker && (
+          <DateTimePicker
+            value={endDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(event, selectedDate) => {
+              setShowEndDatePicker(Platform.OS === 'ios');
+              if (selectedDate) {
+                setEndDate(selectedDate);
+              }
+            }}
+          />
+        )}
 
         <Button
           mode="contained"

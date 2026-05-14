@@ -1,12 +1,16 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { FAB, Card, Title, Paragraph, Chip } from 'react-native-paper';
+import { FAB, Card, Title, Paragraph, Chip, Searchbar } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { getAttendanceByDateRange } from '../services/api';
+import { formatDate } from '../utils/dateFormatter';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export default function AttendanceScreen({ navigation }) {
   const [attendance, setAttendance] = useState([]);
+  const [filteredAttendance, setFilteredAttendance] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -23,30 +27,78 @@ export default function AttendanceScreen({ navigation }) {
       const endDate = today.toISOString().split('T')[0];
       
       const response = await getAttendanceByDateRange(startDate, endDate);
-      setAttendance(response.data);
+      setAttendance(response.data || []);
+      setFilteredAttendance(response.data || []);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load attendance');
+      const errorMessage = getErrorMessage(error, 'Failed to load attendance');
+      Alert.alert('Error', errorMessage);
+      setAttendance([]);
+      setFilteredAttendance([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // Filter attendance by search query
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    if (query.trim() === '') {
+      setFilteredAttendance(attendance);
+    } else {
+      const filtered = attendance.filter((item) =>
+        item.employeeName.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredAttendance(filtered);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      PRESENT: '#4CAF50',
+      HALF_DAY: '#FF9800',
+      ABSENT: '#F44336',
+      SICK_LEAVE: '#9C27B0',
+      CASUAL_LEAVE: '#2196F3',
+      WORK_FROM_HOME: '#00BCD4',
+    };
+    return colors[status] || '#757575';
+  };
+
+  const getStatusLabel = (status, isPresent) => {
+    const labels = {
+      PRESENT: 'Present',
+      HALF_DAY: 'Half Day',
+      ABSENT: 'Absent',
+      SICK_LEAVE: 'Sick Leave',
+      CASUAL_LEAVE: 'Casual Leave',
+      WORK_FROM_HOME: 'Work From Home',
+    };
+    return labels[status] || (isPresent ? 'Present' : 'Absent');
+  };
+
   const renderAttendance = ({ item }) => (
-    <Card style={styles.card}>
+    <Card 
+      style={styles.card}
+      onPress={() => navigation.navigate('EditAttendance', { attendance: item })}
+    >
       <Card.Content>
         <View style={styles.cardHeader}>
           <Title>{item.employeeName}</Title>
           <Chip
             mode="flat"
-            style={[styles.chip, item.isPresent ? styles.present : styles.absent]}
+            style={[styles.chip, { backgroundColor: getStatusColor(item.attendanceStatus) }]}
+            textStyle={{ color: 'white' }}
           >
-            {item.isPresent ? 'Present' : 'Absent'}
+            {getStatusLabel(item.attendanceStatus, item.isPresent)}
           </Chip>
         </View>
-        <Paragraph>Date: {new Date(item.attendanceDate).toLocaleDateString('en-IN')}</Paragraph>
-        <Paragraph>Check In: {item.checkInTime}</Paragraph>
+        <Paragraph>Date: {formatDate(item.attendanceDate)}</Paragraph>
+        {item.checkInTime && <Paragraph>Check In: {item.checkInTime}</Paragraph>}
         {item.checkOutTime && (
           <Paragraph>Check Out: {item.checkOutTime}</Paragraph>
+        )}
+        {item.hoursWorked && (
+          <Paragraph>Hours Worked: {item.hoursWorked}</Paragraph>
         )}
         {item.notes && <Paragraph>Notes: {item.notes}</Paragraph>}
       </Card.Content>
@@ -55,8 +107,14 @@ export default function AttendanceScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <Searchbar
+        placeholder="Search by employee name"
+        onChangeText={handleSearch}
+        value={searchQuery}
+        style={styles.searchBar}
+      />
       <FlatList
-        data={attendance}
+        data={filteredAttendance}
         renderItem={renderAttendance}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
@@ -77,6 +135,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  searchBar: {
+    margin: 16,
+    elevation: 0,
   },
   list: {
     padding: 16,

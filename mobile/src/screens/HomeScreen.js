@@ -1,11 +1,36 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Card, Title, Paragraph, Button } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthContext } from '../context/AuthContext';
 
 export default function HomeScreen({ navigation }) {
   const { signOut } = useContext(AuthContext);
+  const [userRole, setUserRole] = useState('ADMIN');
+  const [userName, setUserName] = useState('');
+
+  useEffect(() => {
+    loadUserInfo();
+  }, []);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const loadUserInfo = async () => {
+    try {
+      const role = await AsyncStorage.getItem('userRole');
+      const name = await AsyncStorage.getItem('userName');
+      setUserRole(role || 'ADMIN');
+      setUserName(name || '');
+    } catch (error) {
+      // Silently fail - user info will use defaults
+    }
+  };
 
   const menuItems = [
     {
@@ -42,7 +67,12 @@ export default function HomeScreen({ navigation }) {
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Title style={styles.title}>FarmTime Dashboard</Title>
-        <Paragraph style={styles.subtitle}>Poultry Farm Management System</Paragraph>
+        <Paragraph style={styles.subtitle}>
+          {userName ? `${getGreeting()}, ${userName}!` : getGreeting()}
+        </Paragraph>
+        {userRole === 'SUPER_ADMIN' && (
+          <Paragraph style={styles.roleTag}>Super Admin</Paragraph>
+        )}
       </View>
 
       <View style={styles.grid}>
@@ -56,6 +86,18 @@ export default function HomeScreen({ navigation }) {
           </Card>
         ))}
       </View>
+
+      {userRole === 'SUPER_ADMIN' && (
+        <Button
+          mode="contained"
+          onPress={() => navigation.navigate('AdminManagement')}
+          style={styles.adminManagementButton}
+          buttonColor="#9C27B0"
+          icon="shield-account"
+        >
+          Admin Management
+        </Button>
+      )}
 
       <Button
         mode="outlined"
@@ -89,6 +131,12 @@ const styles = StyleSheet.create({
     color: 'white',
     marginTop: 4,
   },
+  roleTag: {
+    fontSize: 12,
+    color: '#FFD700',
+    marginTop: 8,
+    fontWeight: 'bold',
+  },
   grid: {
     padding: 16,
   },
@@ -108,8 +156,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#666',
   },
+  adminManagementButton: {
+    margin: 16,
+    marginBottom: 8,
+  },
   logoutButton: {
     margin: 16,
+    marginTop: 0,
     borderColor: '#F44336',
   },
 });

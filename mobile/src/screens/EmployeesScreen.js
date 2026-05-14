@@ -3,6 +3,8 @@ import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { FAB, Card, Title, Paragraph, Chip, Searchbar } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { getActiveEmployees } from '../services/api';
+import { formatDate } from '../utils/dateFormatter';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export default function EmployeesScreen({ navigation }) {
   const [employees, setEmployees] = useState([]);
@@ -20,10 +22,13 @@ export default function EmployeesScreen({ navigation }) {
     setLoading(true);
     try {
       const response = await getActiveEmployees();
-      setEmployees(response.data);
-      setFilteredEmployees(response.data);
+      setEmployees(response.data || []);
+      setFilteredEmployees(response.data || []);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load employees');
+      const errorMessage = getErrorMessage(error, 'Failed to load employees');
+      Alert.alert('Error', errorMessage);
+      setEmployees([]);
+      setFilteredEmployees([]);
     } finally {
       setLoading(false);
     }
@@ -54,7 +59,7 @@ export default function EmployeesScreen({ navigation }) {
         </View>
         <Paragraph>Phone: {item.phoneNumber}</Paragraph>
         <Paragraph>Salary: ₹{item.monthlySalary?.toLocaleString('en-IN')}/month</Paragraph>
-        <Paragraph>Joined: {new Date(item.joiningDate).toLocaleDateString('en-IN')}</Paragraph>
+        <Paragraph>Joined: {formatDate(item.joiningDate)}</Paragraph>
       </Card.Content>
     </Card>
   );

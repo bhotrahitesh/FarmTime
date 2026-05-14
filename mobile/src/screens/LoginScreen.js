@@ -1,10 +1,11 @@
 import React, { useState, useContext } from 'react';
 import { View, StyleSheet, Image, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { TextInput, Button, Title, Text } from 'react-native-paper';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthContext } from '../context/AuthContext';
 import { login } from '../services/api';
 
-export default function LoginScreen() {
+export default function LoginScreen({ navigation }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,9 +20,28 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const response = await login(username, password);
+      // Save username and role for password change and access control
+      await AsyncStorage.setItem('username', username);
+      await AsyncStorage.setItem('userRole', response.data.role || 'ADMIN');
+      await AsyncStorage.setItem('userName', response.data.name || username);
       await signIn(response.data.token);
     } catch (error) {
-      Alert.alert('Login Failed', error.response?.data?.message || 'Invalid credentials');
+      const errorData = error.response?.data;
+      if (errorData?.status === 'PENDING_APPROVAL') {
+        Alert.alert(
+          'Account Pending Approval',
+          errorData.message,
+          [{ text: 'OK' }]
+        );
+      } else if (errorData?.status === 'DEACTIVATED') {
+        Alert.alert(
+          'Account Deactivated',
+          errorData.message,
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Login Failed', errorData?.message || 'Invalid credentials');
+      }
     } finally {
       setLoading(false);
     }
@@ -65,6 +85,22 @@ export default function LoginScreen() {
           >
             Login
           </Button>
+
+          <Button
+            mode="text"
+            onPress={() => navigation.navigate('ForgotPassword')}
+            style={styles.linkButton}
+          >
+            Forgot Password?
+          </Button>
+
+          <Button
+            mode="text"
+            onPress={() => navigation.navigate('Register')}
+            style={styles.linkButton}
+          >
+            Don't have an account? Register
+          </Button>
         </View>
       </View>
     </KeyboardAvoidingView>
@@ -89,6 +125,7 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: 'bold',
     color: '#4CAF50',
+    lineHeight: 48,
   },
   subtitle: {
     fontSize: 16,
@@ -104,5 +141,8 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 16,
     paddingVertical: 6,
+  },
+  linkButton: {
+    marginTop: 12,
   },
 });

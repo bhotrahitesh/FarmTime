@@ -9,10 +9,12 @@ import AddEmployeeScreen from '../screens/AddEmployeeScreen';
 import EmployeeDetailScreen from '../screens/EmployeeDetailScreen';
 import AttendanceScreen from '../screens/AttendanceScreen';
 import MarkAttendanceScreen from '../screens/MarkAttendanceScreen';
+import EditAttendanceScreen from '../screens/EditAttendanceScreen';
 import PaymentsScreen from '../screens/PaymentsScreen';
 import AddPaymentScreen from '../screens/AddPaymentScreen';
 import TimeOffScreen from '../screens/TimeOffScreen';
 import AddTimeOffScreen from '../screens/AddTimeOffScreen';
+import ReportsScreen from '../screens/ReportsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -51,6 +53,11 @@ function AttendanceStack() {
         name="MarkAttendance" 
         component={MarkAttendanceScreen}
         options={{ title: 'Mark Attendance' }}
+      />
+      <Stack.Screen 
+        name="EditAttendance" 
+        component={EditAttendanceScreen}
+        options={{ title: 'Edit Attendance' }}
       />
     </Stack.Navigator>
   );
@@ -107,6 +114,8 @@ export default function MainNavigator() {
             iconName = 'currency-inr';
           } else if (route.name === 'TimeOff') {
             iconName = 'calendar-remove';
+          } else if (route.name === 'Reports') {
+            iconName = 'file-chart';
           }
 
           return <Icon name={iconName} size={size} color={color} />;
@@ -121,6 +130,7 @@ export default function MainNavigator() {
       <Tab.Screen name="Attendance" component={AttendanceStack} />
       <Tab.Screen name="Payments" component={PaymentsStack} />
       <Tab.Screen name="TimeOff" component={TimeOffStack} />
+      <Tab.Screen name="Reports" component={ReportsScreen} />
     </Tab.Navigator>
   );
 }

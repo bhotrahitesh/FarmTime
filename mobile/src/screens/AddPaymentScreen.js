@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Button, Menu, TextInput } from 'react-native-paper';
-import DatePicker from 'react-native-date-picker';
+import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
+import { TextInput, Button, Menu } from 'react-native-paper';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { getActiveEmployees, createPayment } from '../services/api';
+import { formatDateForDisplay } from '../utils/dateFormatter';
+import { getErrorMessage } from '../utils/errorHandler';
 
 const PAYMENT_TYPES = ['SALARY', 'ADVANCE', 'BONUS', 'DEDUCTION'];
 
@@ -25,9 +27,11 @@ export default function AddPaymentScreen({ navigation }) {
   const loadEmployees = async () => {
     try {
       const response = await getActiveEmployees();
-      setEmployees(response.data);
+      setEmployees(response.data || []);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load employees');
+      const errorMessage = getErrorMessage(error, 'Failed to load employees');
+      Alert.alert('Error', errorMessage);
+      setEmployees([]);
     }
   };
 
@@ -52,7 +56,8 @@ export default function AddPaymentScreen({ navigation }) {
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to add payment');
+      const errorMessage = getErrorMessage(error, 'Failed to add payment');
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -125,7 +130,7 @@ export default function AddPaymentScreen({ navigation }) {
           onPress={() => setShowDatePicker(true)}
           style={styles.input}
         >
-          Payment Date: {paymentDate.toLocaleDateString('en-IN')}
+          Payment Date: {formatDateForDisplay(paymentDate)}
         </Button>
 
         <TextInput
@@ -138,17 +143,19 @@ export default function AddPaymentScreen({ navigation }) {
           style={styles.input}
         />
 
-        <DatePicker
-          modal
-          open={showDatePicker}
-          date={paymentDate}
-          mode="date"
-          onConfirm={(date) => {
-            setShowDatePicker(false);
-            setPaymentDate(date);
-          }}
-          onCancel={() => setShowDatePicker(false)}
-        />
+        {showDatePicker && (
+          <DateTimePicker
+            value={paymentDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(Platform.OS === 'ios');
+              if (selectedDate) {
+                setPaymentDate(selectedDate);
+              }
+            }}
+          />
+        )}
 
         <Button
           mode="contained"

@@ -2,6 +2,8 @@ import React from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
 import { Card, Title, Paragraph, Button, Divider } from 'react-native-paper';
 import { deleteEmployee } from '../services/api';
+import { formatDate } from '../utils/dateFormatter';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export default function EmployeeDetailScreen({ route, navigation }) {
   const { employee } = route.params;
@@ -9,20 +11,21 @@ export default function EmployeeDetailScreen({ route, navigation }) {
   const handleDelete = () => {
     Alert.alert(
       'Confirm Delete',
-      'Are you sure you want to deactivate this employee?',
+      `Are you sure you want to permanently delete ${employee.name}?\n\n⚠️ WARNING: This will also delete ALL related records including:\n• Attendance history\n• Payment records\n• Time-off requests\n\nThis action cannot be undone!`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Delete',
+          text: 'Delete All',
           style: 'destructive',
           onPress: async () => {
             try {
               await deleteEmployee(employee.id);
-              Alert.alert('Success', 'Employee deactivated successfully', [
+              Alert.alert('Success', 'Employee and all related records deleted successfully', [
                 { text: 'OK', onPress: () => navigation.goBack() },
               ]);
             } catch (error) {
-              Alert.alert('Error', 'Failed to deactivate employee');
+              const errorMessage = getErrorMessage(error, 'Failed to delete employee');
+              Alert.alert('Delete Failed', errorMessage);
             }
           },
         },
@@ -57,7 +60,7 @@ export default function EmployeeDetailScreen({ route, navigation }) {
           <View style={styles.row}>
             <Paragraph style={styles.label}>Joining Date:</Paragraph>
             <Paragraph style={styles.value}>
-              {new Date(employee.joiningDate).toLocaleDateString('en-IN')}
+              {formatDate(employee.joiningDate)}
             </Paragraph>
           </View>
 
@@ -77,7 +80,7 @@ export default function EmployeeDetailScreen({ route, navigation }) {
           style={styles.deleteButton}
           buttonColor="#F44336"
         >
-          Deactivate Employee
+          Delete Employee
         </Button>
       </View>
     </ScrollView>

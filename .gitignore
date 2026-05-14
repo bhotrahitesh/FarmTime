@@ -39,6 +39,9 @@ mobile/web-build/
 .env.local
 .env.production
 
+# Database credentials
+backend/src/main/resources/application-neon.properties
+
 # Logs
 logs/
 *.log

@@ -1,11 +1,15 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { FAB, Card, Title, Paragraph, Chip } from 'react-native-paper';
+import { FAB, Card, Title, Paragraph, Chip, Searchbar } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { getTimeOffByDateRange } from '../services/api';
+import { formatDate } from '../utils/dateFormatter';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export default function TimeOffScreen({ navigation }) {
   const [timeOffs, setTimeOffs] = useState([]);
+  const [filteredTimeOffs, setFilteredTimeOffs] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
 
   useFocusEffect(
@@ -24,11 +28,27 @@ export default function TimeOffScreen({ navigation }) {
         .toISOString().split('T')[0];
       
       const response = await getTimeOffByDateRange(startDate, endDate);
-      setTimeOffs(response.data);
+      setTimeOffs(response.data || []);
+      setFilteredTimeOffs(response.data || []);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load time off records');
+      const errorMessage = getErrorMessage(error, 'Failed to load time off records');
+      Alert.alert('Error', errorMessage);
+      setTimeOffs([]);
+      setFilteredTimeOffs([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    if (query.trim() === '') {
+      setFilteredTimeOffs(timeOffs);
+    } else {
+      const filtered = timeOffs.filter((item) =>
+        item.employeeName.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredTimeOffs(filtered);
     }
   };
 
@@ -60,10 +80,10 @@ export default function TimeOffScreen({ navigation }) {
           </Chip>
         </View>
         <Paragraph>
-          From: {new Date(item.startDate).toLocaleDateString('en-IN')}
+          From: {formatDate(item.startDate)}
         </Paragraph>
         <Paragraph>
-          To: {new Date(item.endDate).toLocaleDateString('en-IN')}
+          To: {formatDate(item.endDate)}
         </Paragraph>
         {item.reason && <Paragraph>Reason: {item.reason}</Paragraph>}
       </Card.Content>
@@ -72,8 +92,14 @@ export default function TimeOffScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <Searchbar
+        placeholder="Search by employee name"
+        onChangeText={handleSearch}
+        value={searchQuery}
+        style={styles.searchBar}
+      />
       <FlatList
-        data={timeOffs}
+        data={filteredTimeOffs}
         renderItem={renderTimeOff}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
@@ -94,6 +120,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  searchBar: {
+    margin: 16,
+    elevation: 0,
   },
   list: {
     padding: 16,

@@ -52,7 +52,7 @@ public class PaymentService {
     
     @Transactional(readOnly = true)
     public List<PaymentDTO> getPaymentsByDateRange(LocalDate startDate, LocalDate endDate) {
-        return paymentRepository.findByPaymentDateBetween(startDate, endDate).stream()
+        return paymentRepository.findByPaymentDateBetweenOrderByPaymentDateDescCreatedAtDesc(startDate, endDate).stream()
             .map(this::convertToDTO)
             .collect(Collectors.toList());
     }
@@ -62,7 +62,7 @@ public class PaymentService {
         Employee employee = employeeRepository.findById(employeeId)
             .orElseThrow(() -> new RuntimeException("Employee not found"));
         
-        return paymentRepository.findByEmployee(employee).stream()
+        return paymentRepository.findByEmployeeOrderByPaymentDateDescCreatedAtDesc(employee).stream()
             .map(this::convertToDTO)
             .collect(Collectors.toList());
     }

@@ -1,8 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { Button, Menu, Switch, Text, TextInput } from 'react-native-paper';
-import DatePicker from 'react-native-date-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { getActiveEmployees, markAttendance } from '../services/api';
+import { formatDateForDisplay } from '../utils/dateFormatter';
+import { getErrorMessage } from '../utils/errorHandler';
+
+const ATTENDANCE_STATUSES = [
+  { value: 'PRESENT', label: 'Present (Full Day)' },
+  { value: 'HALF_DAY', label: 'Half Day' },
+  { value: 'ABSENT', label: 'Absent' },
+  { value: 'SICK_LEAVE', label: 'Sick Leave' },
+  { value: 'CASUAL_LEAVE', label: 'Casual Leave' },
+  { value: 'WORK_FROM_HOME', label: 'Work From Home' },
+];
 
 export default function MarkAttendanceScreen({ navigation }) {
   const [employees, setEmployees] = useState([]);
@@ -12,6 +23,9 @@ export default function MarkAttendanceScreen({ navigation }) {
   const [checkInTime, setCheckInTime] = useState(new Date());
   const [checkOutTime, setCheckOutTime] = useState(new Date());
   const [isPresent, setIsPresent] = useState(true);
+  const [attendanceStatus, setAttendanceStatus] = useState('PRESENT');
+  const [statusMenuVisible, setStatusMenuVisible] = useState(false);
+  const [hoursWorked, setHoursWorked] = useState('');
   const [notes, setNotes] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showCheckInPicker, setShowCheckInPicker] = useState(false);
@@ -25,9 +39,28 @@ export default function MarkAttendanceScreen({ navigation }) {
   const loadEmployees = async () => {
     try {
       const response = await getActiveEmployees();
-      setEmployees(response.data);
+      setEmployees(response.data || []);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load employees');
+      const errorMessage = getErrorMessage(error, 'Failed to load employees');
+      Alert.alert('Error', errorMessage);
+      setEmployees([]);
+    }
+  };
+
+  const handleStatusChange = (status) => {
+    setAttendanceStatus(status);
+    setStatusMenuVisible(false);
+    
+    // Auto-set isPresent based on status
+    if (status === 'ABSENT' || status === 'SICK_LEAVE' || status === 'CASUAL_LEAVE') {
+      setIsPresent(false);
+    } else {
+      setIsPresent(true);
+    }
+    
+    // Set default hours for half day
+    if (status === 'HALF_DAY' && !hoursWorked) {
+      setHoursWorked('4');
     }
   };
 
@@ -42,9 +75,15 @@ export default function MarkAttendanceScreen({ navigation }) {
       const attendance = {
         employeeId: selectedEmployee.id,
         attendanceDate: attendanceDate.toISOString().split('T')[0],
-        checkInTime: checkInTime.toTimeString().split(' ')[0],
-        checkOutTime: checkOutTime.toTimeString().split(' ')[0],
+        checkInTime: (attendanceStatus !== 'ABSENT' && attendanceStatus !== 'SICK_LEAVE' && attendanceStatus !== 'CASUAL_LEAVE') 
+          ? checkInTime.toTimeString().split(' ')[0] 
+          : null,
+        checkOutTime: (attendanceStatus !== 'ABSENT' && attendanceStatus !== 'SICK_LEAVE' && attendanceStatus !== 'CASUAL_LEAVE') 
+          ? checkOutTime.toTimeString().split(' ')[0] 
+          : null,
         isPresent,
+        attendanceStatus,
+        hoursWorked: hoursWorked ? parseFloat(hoursWorked) : null,
         notes,
       };
 
@@ -53,7 +92,8 @@ export default function MarkAttendanceScreen({ navigation }) {
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to mark attendance');
+      const errorMessage = getErrorMessage(error, 'Failed to mark attendance');
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -92,29 +132,62 @@ export default function MarkAttendanceScreen({ navigation }) {
           onPress={() => setShowDatePicker(true)}
           style={styles.input}
         >
-          Date: {attendanceDate.toLocaleDateString('en-IN')}
+          Date: {formatDateForDisplay(attendanceDate)}
         </Button>
 
-        <Button
-          mode="outlined"
-          onPress={() => setShowCheckInPicker(true)}
-          style={styles.input}
+        <Menu
+          visible={statusMenuVisible}
+          onDismiss={() => setStatusMenuVisible(false)}
+          anchor={
+            <Button
+              mode="outlined"
+              onPress={() => setStatusMenuVisible(true)}
+              style={styles.input}
+            >
+              Status: {ATTENDANCE_STATUSES.find(s => s.value === attendanceStatus)?.label || 'Select Status'}
+            </Button>
+          }
         >
-          Check In: {checkInTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-        </Button>
+          {ATTENDANCE_STATUSES.map((status) => (
+            <Menu.Item
+              key={status.value}
+              onPress={() => handleStatusChange(status.value)}
+              title={status.label}
+            />
+          ))}
+        </Menu>
 
-        <Button
-          mode="outlined"
-          onPress={() => setShowCheckOutPicker(true)}
-          style={styles.input}
-        >
-          Check Out: {checkOutTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-        </Button>
+        {(attendanceStatus === 'PRESENT' || attendanceStatus === 'HALF_DAY' || attendanceStatus === 'WORK_FROM_HOME') && (
+          <>
+            <Button
+              mode="outlined"
+              onPress={() => setShowCheckInPicker(true)}
+              style={styles.input}
+            >
+              Check In: {checkInTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+            </Button>
 
-        <View style={styles.switchContainer}>
-          <Text>Present</Text>
-          <Switch value={isPresent} onValueChange={setIsPresent} />
-        </View>
+            <Button
+              mode="outlined"
+              onPress={() => setShowCheckOutPicker(true)}
+              style={styles.input}
+            >
+              Check Out: {checkOutTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+            </Button>
+          </>
+        )}
+
+        {attendanceStatus === 'HALF_DAY' && (
+          <TextInput
+            label="Hours Worked"
+            value={hoursWorked}
+            onChangeText={setHoursWorked}
+            mode="outlined"
+            keyboardType="numeric"
+            style={styles.input}
+            placeholder="e.g., 4"
+          />
+        )}
 
         <TextInput
           label="Notes"
@@ -126,41 +199,47 @@ export default function MarkAttendanceScreen({ navigation }) {
           style={styles.input}
         />
 
-        <DatePicker
-          modal
-          open={showDatePicker}
-          date={attendanceDate}
-          mode="date"
-          onConfirm={(date) => {
-            setShowDatePicker(false);
-            setAttendanceDate(date);
-          }}
-          onCancel={() => setShowDatePicker(false)}
-        />
+        {showDatePicker && (
+          <DateTimePicker
+            value={attendanceDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(Platform.OS === 'ios');
+              if (selectedDate) {
+                setAttendanceDate(selectedDate);
+              }
+            }}
+          />
+        )}
 
-        <DatePicker
-          modal
-          open={showCheckInPicker}
-          date={checkInTime}
-          mode="time"
-          onConfirm={(time) => {
-            setShowCheckInPicker(false);
-            setCheckInTime(time);
-          }}
-          onCancel={() => setShowCheckInPicker(false)}
-        />
+        {showCheckInPicker && (
+          <DateTimePicker
+            value={checkInTime}
+            mode="time"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(event, selectedTime) => {
+              setShowCheckInPicker(Platform.OS === 'ios');
+              if (selectedTime) {
+                setCheckInTime(selectedTime);
+              }
+            }}
+          />
+        )}
 
-        <DatePicker
-          modal
-          open={showCheckOutPicker}
-          date={checkOutTime}
-          mode="time"
-          onConfirm={(time) => {
-            setShowCheckOutPicker(false);
-            setCheckOutTime(time);
-          }}
-          onCancel={() => setShowCheckOutPicker(false)}
-        />
+        {showCheckOutPicker && (
+          <DateTimePicker
+            value={checkOutTime}
+            mode="time"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(event, selectedTime) => {
+              setShowCheckOutPicker(Platform.OS === 'ios');
+              if (selectedTime) {
+                setCheckOutTime(selectedTime);
+              }
+            }}
+          />
+        )}
 
         <Button
           mode="contained"

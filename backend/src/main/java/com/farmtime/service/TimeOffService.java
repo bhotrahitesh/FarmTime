@@ -3,6 +3,7 @@ package com.farmtime.service;
 import com.farmtime.dto.TimeOffDTO;
 import com.farmtime.model.Employee;
 import com.farmtime.model.TimeOff;
+import com.farmtime.exception.ValidationException;
 import com.farmtime.repository.EmployeeRepository;
 import com.farmtime.repository.TimeOffRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,12 @@ public class TimeOffService {
         Employee employee = employeeRepository.findById(dto.getEmployeeId())
             .orElseThrow(() -> new RuntimeException("Employee not found"));
         
+        long overlaps = timeOffRepository.countOverlappingTimeOff(
+            dto.getEmployeeId(), dto.getStartDate(), dto.getEndDate());
+        if (overlaps > 0) {
+            throw new ValidationException("Employee already has a leave record overlapping the selected dates");
+        }
+
         TimeOff timeOff = new TimeOff();
         timeOff.setEmployee(employee);
         timeOff.setStartDate(dto.getStartDate());
@@ -41,6 +48,12 @@ public class TimeOffService {
         TimeOff timeOff = timeOffRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Time off record not found"));
         
+        long overlaps = timeOffRepository.countOverlappingTimeOffExcluding(
+            timeOff.getEmployee().getId(), dto.getStartDate(), dto.getEndDate(), id);
+        if (overlaps > 0) {
+            throw new ValidationException("Employee already has a leave record overlapping the selected dates");
+        }
+
         timeOff.setStartDate(dto.getStartDate());
         timeOff.setEndDate(dto.getEndDate());
         timeOff.setTimeOffType(dto.getTimeOffType());
@@ -55,14 +68,14 @@ public class TimeOffService {
         Employee employee = employeeRepository.findById(employeeId)
             .orElseThrow(() -> new RuntimeException("Employee not found"));
         
-        return timeOffRepository.findByEmployee(employee).stream()
+        return timeOffRepository.findByEmployeeOrderByStartDateDescCreatedAtDesc(employee).stream()
             .map(this::convertToDTO)
             .collect(Collectors.toList());
     }
     
     @Transactional(readOnly = true)
     public List<TimeOffDTO> getTimeOffByDateRange(LocalDate startDate, LocalDate endDate) {
-        return timeOffRepository.findByStartDateBetweenOrEndDateBetween(startDate, endDate, startDate, endDate).stream()
+        return timeOffRepository.findByStartDateBetweenOrEndDateBetweenOrderByStartDateDesc(startDate, endDate, startDate, endDate).stream()
             .map(this::convertToDTO)
             .collect(Collectors.toList());
     }

@@ -18,5 +18,7 @@ public class AttendanceDTO {
     private LocalTime checkInTime;
     private LocalTime checkOutTime;
     private Boolean isPresent;
+    private String attendanceStatus; // PRESENT, ABSENT, SICK_LEAVE, HALF_DAY, CASUAL_LEAVE, WORK_FROM_HOME
+    private Double hoursWorked;
     private String notes;
 }

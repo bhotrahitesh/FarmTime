@@ -34,6 +34,19 @@ public class Admin {
     @Column(nullable = false)
     private Boolean isActive = true;
     
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AdminRole role = AdminRole.PENDING;
+    
+    @Column(nullable = false)
+    private Boolean isApproved = false;
+    
+    @Column
+    private Long approvedBy;
+    
+    @Column
+    private LocalDateTime approvedAt;
+    
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
@@ -49,5 +62,11 @@ public class Admin {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+    
+    public enum AdminRole {
+        SUPER_ADMIN,  // Full access, can approve admins
+        ADMIN,        // Full access to data
+        PENDING       // Waiting for approval
     }
 }

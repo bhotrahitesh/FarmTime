@@ -9,6 +9,6 @@ import java.util.Optional;
 
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Long> {
-    List<Employee> findByIsActiveTrue();
+    List<Employee> findByIsActiveTrueOrderByCreatedAtDesc();
     Optional<Employee> findByPhoneNumber(String phoneNumber);
 }

@@ -1,11 +1,15 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { FAB, Card, Title, Paragraph, Chip } from 'react-native-paper';
+import { FAB, Card, Title, Paragraph, Chip, Searchbar } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { getPaymentsByDateRange } from '../services/api';
+import { formatDate } from '../utils/dateFormatter';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export default function PaymentsScreen({ navigation }) {
   const [payments, setPayments] = useState([]);
+  const [filteredPayments, setFilteredPayments] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
 
   useFocusEffect(
@@ -23,11 +27,27 @@ export default function PaymentsScreen({ navigation }) {
       const endDate = today.toISOString().split('T')[0];
       
       const response = await getPaymentsByDateRange(startDate, endDate);
-      setPayments(response.data);
+      setPayments(response.data || []);
+      setFilteredPayments(response.data || []);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load payments');
+      const errorMessage = getErrorMessage(error, 'Failed to load payments');
+      Alert.alert('Error', errorMessage);
+      setPayments([]);
+      setFilteredPayments([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
+    if (query.trim() === '') {
+      setFilteredPayments(payments);
+    } else {
+      const filtered = payments.filter((item) =>
+        item.employeeName.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredPayments(filtered);
     }
   };
 
@@ -59,7 +79,7 @@ export default function PaymentsScreen({ navigation }) {
           </Chip>
         </View>
         <Paragraph style={styles.amount}>₹{item.amount?.toLocaleString('en-IN')}</Paragraph>
-        <Paragraph>Date: {new Date(item.paymentDate).toLocaleDateString('en-IN')}</Paragraph>
+        <Paragraph>Date: {formatDate(item.paymentDate)}</Paragraph>
         {item.description && <Paragraph>Description: {item.description}</Paragraph>}
       </Card.Content>
     </Card>
@@ -67,8 +87,14 @@ export default function PaymentsScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
+      <Searchbar
+        placeholder="Search by employee name"
+        onChangeText={handleSearch}
+        value={searchQuery}
+        style={styles.searchBar}
+      />
       <FlatList
-        data={payments}
+        data={filteredPayments}
         renderItem={renderPayment}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
@@ -89,6 +115,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  searchBar: {
+    margin: 16,
+    elevation: 0,
   },
   list: {
     padding: 16,

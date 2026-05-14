@@ -13,9 +13,16 @@ import java.util.List;
 
 @Repository
 public interface TimeOffRepository extends JpaRepository<TimeOff, Long> {
-    List<TimeOff> findByEmployee(Employee employee);
-    List<TimeOff> findByStartDateBetweenOrEndDateBetween(LocalDate start1, LocalDate end1, LocalDate start2, LocalDate end2);
+    List<TimeOff> findByEmployeeOrderByStartDateDescCreatedAtDesc(Employee employee);
+    List<TimeOff> findByEmployeeAndStartDateBetween(Employee employee, LocalDate startDate, LocalDate endDate);
+    List<TimeOff> findByStartDateBetweenOrEndDateBetweenOrderByStartDateDesc(LocalDate start1, LocalDate end1, LocalDate start2, LocalDate end2);
     
+    @Query("SELECT COUNT(t) FROM TimeOff t WHERE t.employee.id = :employeeId AND t.startDate <= :endDate AND t.endDate >= :startDate")
+    long countOverlappingTimeOff(@Param("employeeId") Long employeeId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT COUNT(t) FROM TimeOff t WHERE t.employee.id = :employeeId AND t.startDate <= :endDate AND t.endDate >= :startDate AND t.id != :excludeId")
+    long countOverlappingTimeOffExcluding(@Param("employeeId") Long employeeId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("excludeId") Long excludeId);
+
     @Modifying
     @Query("DELETE FROM TimeOff t WHERE t.endDate < :cutoffDate")
     void deleteOldRecords(@Param("cutoffDate") LocalDate cutoffDate);

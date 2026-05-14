@@ -1,8 +1,21 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
-// Change this to your computer's IP address when testing on physical device
-const API_BASE_URL = 'http://localhost:8080/api';
+// API URL configuration for different platforms
+// iOS Simulator: localhost works
+// Android Emulator: Use 10.0.2.2 (special alias to host machine's localhost)
+// Physical Device: Use your computer's IP address (find with: ifconfig | grep "inet ")
+const getApiUrl = () => {
+  if (Platform.OS === 'android') {
+    // Android emulator uses 10.0.2.2 to access host machine's localhost
+    return 'http://10.0.2.2:8080/api';
+  }
+  // iOS simulator and default
+  return 'http://localhost:8080/api';
+};
+
+const API_BASE_URL = getApiUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -30,8 +43,45 @@ export const login = (username, password) => {
   return api.post('/auth/login', { username, password });
 };
 
-export const register = (username, password, name) => {
-  return api.post('/auth/register', { username, password, name });
+export const register = (data) => {
+  return api.post('/auth/register', data);
+};
+
+export const forgotPassword = (username) => {
+  return api.post('/auth/forgot-password', { username });
+};
+
+export const changePassword = (username, oldPassword, newPassword) => {
+  return api.post('/auth/change-password', { username, oldPassword, newPassword });
+};
+
+// Admin Management APIs
+export const getAllAdmins = () => {
+  return api.get('/admin-management/admins');
+};
+
+export const getPendingAdmins = () => {
+  return api.get('/admin-management/admins/pending');
+};
+
+export const approveAdmin = (adminId, role) => {
+  return api.post(`/admin-management/admins/${adminId}/approve`, { role });
+};
+
+export const rejectAdmin = (adminId) => {
+  return api.delete(`/admin-management/admins/${adminId}/reject`);
+};
+
+export const deactivateAdmin = (adminId) => {
+  return api.put(`/admin-management/admins/${adminId}/deactivate`);
+};
+
+export const activateAdmin = (adminId) => {
+  return api.put(`/admin-management/admins/${adminId}/activate`);
+};
+
+export const changeAdminRole = (adminId, role) => {
+  return api.put(`/admin-management/admins/${adminId}/role`, { role });
 };
 
 // Employee APIs
@@ -128,6 +178,29 @@ export const updateTimeOff = (id, timeOff) => {
 
 export const deleteTimeOff = (id) => {
   return api.delete(`/timeoff/${id}`);
+};
+
+// Report APIs
+export const exportAttendanceReport = (employeeIds, startDate, endDate) => {
+  const params = { startDate, endDate };
+  if (employeeIds && employeeIds.length > 0) {
+    params.employeeIds = employeeIds;
+  }
+  return api.get('/reports/attendance/export', {
+    params,
+    responseType: 'blob',
+  });
+};
+
+export const exportPaymentReport = (employeeIds, startDate, endDate) => {
+  const params = { startDate, endDate };
+  if (employeeIds && employeeIds.length > 0) {
+    params.employeeIds = employeeIds;
+  }
+  return api.get('/reports/payments/export', {
+    params,
+    responseType: 'blob',
+  });
 };
 
 export default api;

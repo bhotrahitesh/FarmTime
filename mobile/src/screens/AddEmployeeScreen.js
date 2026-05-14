@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
 import { TextInput, Button } from 'react-native-paper';
-import DatePicker from 'react-native-date-picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { createEmployee } from '../services/api';
+import { formatDateForDisplay } from '../utils/dateFormatter';
+import { getErrorMessage } from '../utils/errorHandler';
 
 export default function AddEmployeeScreen({ navigation }) {
   const [name, setName] = useState('');
@@ -35,7 +37,8 @@ export default function AddEmployeeScreen({ navigation }) {
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);
     } catch (error) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to add employee');
+      const errorMessage = getErrorMessage(error, 'Failed to add employee');
+      Alert.alert('Error', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -81,20 +84,22 @@ export default function AddEmployeeScreen({ navigation }) {
           onPress={() => setShowDatePicker(true)}
           style={styles.input}
         >
-          Joining Date: {joiningDate.toLocaleDateString('en-IN')}
+          Joining Date: {formatDateForDisplay(joiningDate)}
         </Button>
 
-        <DatePicker
-          modal
-          open={showDatePicker}
-          date={joiningDate}
-          mode="date"
-          onConfirm={(date) => {
-            setShowDatePicker(false);
-            setJoiningDate(date);
-          }}
-          onCancel={() => setShowDatePicker(false)}
-        />
+        {showDatePicker && (
+          <DateTimePicker
+            value={joiningDate}
+            mode="date"
+            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(Platform.OS === 'ios');
+              if (selectedDate) {
+                setJoiningDate(selectedDate);
+              }
+            }}
+          />
+        )}
 
         <Button
           mode="contained"

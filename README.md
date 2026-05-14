@@ -54,6 +54,12 @@ FarmTime/
     └── package.json
 ```
 
+## Quick Start
+
+**See [START_APP.md](START_APP.md) for the fastest way to get started!**
+
+For Android setup, see [ANDROID_SETUP.md](ANDROID_SETUP.md).
+
 ## Setup Instructions
 
 ### Prerequisites
@@ -64,6 +70,7 @@ FarmTime/
 - Node.js 18+
 - npm or yarn
 - Expo CLI (`npm install -g expo-cli`)
+- **For Android**: Android Studio with Android SDK ([Setup Guide](ANDROID_SETUP.md))
 
 ### Backend Setup
 
@@ -107,20 +114,41 @@ FarmTime/
    npm install
    ```
 
-2. **Update API URL** in `mobile/src/services/api.js`:
-   - For iOS Simulator: `http://localhost:8080/api`
-   - For Android Emulator: `http://10.0.2.2:8080/api`
-   - For Physical Device: `http://YOUR_COMPUTER_IP:8080/api`
+2. **API URL Configuration**:
+   The app automatically uses the correct API URL based on platform:
+   - iOS Simulator: `http://localhost:8080/api` ✅
+   - Android Emulator: `http://10.0.2.2:8080/api` ✅
+   - Physical Device: Update in `mobile/src/services/api.js`
 
 3. **Start the App**:
+   
+   **For iOS:**
    ```bash
    npm start
+   # Press 'i' for iOS simulator
+   ```
+   
+   **For Android (Quick Start):**
+   ```bash
+   ./run-android.sh
+   # Automatically starts emulator and app
+   ```
+   
+   **For Android (Manual):**
+   ```bash
+   # First time: Check setup
+   ./check-android-setup.sh
+   
+   # Start emulator
+   emulator -avd YOUR_AVD_NAME &
+   
+   # Start app
+   npm run android
    ```
 
-4. **Run on Device**:
-   - Press `i` for iOS simulator
-   - Press `a` for Android emulator
-   - Scan QR code with Expo Go app for physical device
+4. **Android Setup** (First Time):
+   - See [ANDROID_SETUP.md](ANDROID_SETUP.md) for complete guide
+   - Or run `./run-android.sh` which handles everything automatically
 
 ## API Endpoints
 

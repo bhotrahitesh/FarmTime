@@ -88,8 +88,65 @@ npm start
 When Expo DevTools opens:
 
 - **iOS Simulator**: Press `i`
-- **Android Emulator**: Press `a`
+- **Android Emulator**: Press `a` (see Android Setup below if emulator isn't running)
 - **Physical Device**: Scan QR code with Expo Go app
+
+#### 🤖 Android Emulator Setup (First Time)
+
+If you don't have an Android emulator set up yet:
+
+**Option 1: Automated Script (Recommended)**
+```bash
+cd mobile
+./run-android.sh
+```
+
+This script will:
+- Check if Android SDK is installed
+- List available emulators
+- Start the selected emulator
+- Launch the app automatically
+
+**Option 2: Manual Setup**
+
+1. **Install Android Studio** from https://developer.android.com/studio
+
+2. **Set up environment variables** - Add to `~/.zshrc`:
+```bash
+export ANDROID_HOME=$HOME/Library/Android/sdk
+export PATH=$PATH:$ANDROID_HOME/emulator
+export PATH=$PATH:$ANDROID_HOME/platform-tools
+export PATH=$PATH:$ANDROID_HOME/tools
+export PATH=$PATH:$ANDROID_HOME/tools/bin
+```
+
+3. **Apply changes**:
+```bash
+source ~/.zshrc
+```
+
+4. **Create an Android Virtual Device (AVD)**:
+   - Open Android Studio
+   - Go to **Tools > Device Manager**
+   - Click **Create Virtual Device**
+   - Select a device (e.g., **Pixel 5**)
+   - Download a system image (e.g., **API 33 - Android 13**)
+   - Click **Finish**
+
+5. **Start the emulator**:
+```bash
+# List available emulators
+emulator -list-avds
+
+# Start an emulator (replace with your AVD name)
+emulator -avd Pixel_5_API_33 &
+```
+
+6. **Run the app**:
+```bash
+cd mobile
+npm run android
+```
 
 ### Step 7: Login
 
@@ -139,6 +196,52 @@ kill -9 <PID>
 - Android Emulator: `http://10.0.2.2:8080/api`
 - Physical Device: `http://YOUR_IP:8080/api` (find IP with `ifconfig`)
 
+### Android emulator not starting
+
+**Problem**: ANDROID_HOME not set or emulator not found
+
+**Solution**:
+```bash
+# Check if ANDROID_HOME is set
+echo $ANDROID_HOME
+
+# If empty, add to ~/.zshrc:
+export ANDROID_HOME=$HOME/Library/Android/sdk
+export PATH=$PATH:$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools
+
+# Reload shell
+source ~/.zshrc
+```
+
+### No Android Virtual Devices (AVDs)
+
+**Problem**: No emulators created
+
+**Solution**: Use the automated script or create one manually:
+```bash
+# Automated
+cd mobile
+./run-android.sh
+
+# Manual - Open Android Studio > Tools > Device Manager > Create Virtual Device
+```
+
+### Expo can't find Android emulator
+
+**Problem**: Emulator running but Expo doesn't detect it
+
+**Solution**:
+```bash
+# Check if emulator is detected
+adb devices
+
+# If no devices, restart adb
+adb kill-server
+adb start-server
+
+# Then press 'a' in Expo terminal
+```
+
 ---
 
 ## 📝 Daily Usage
@@ -152,12 +255,31 @@ cd backend
 ```
 
 **Terminal 2 - Mobile:**
+
+*For iOS:*
 ```bash
 cd mobile
 npm start
+# Press 'i' when ready
 ```
 
-Then press `i` or `a` to launch!
+*For Android (Quick Start):*
+```bash
+cd mobile
+./run-android.sh
+# Automatically starts emulator and app
+```
+
+*For Android (Manual):*
+```bash
+# Terminal 2a - Start emulator
+emulator -avd Pixel_5_API_33 &
+
+# Terminal 2b - Start app
+cd mobile
+npm start
+# Press 'a' when ready
+```
 
 ---
 

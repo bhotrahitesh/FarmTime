@@ -32,14 +32,17 @@ public class Attendance {
     @Column(nullable = false)
     private LocalDate attendanceDate;
     
-    @NotNull(message = "Check-in time is required")
-    @Column(nullable = false)
     private LocalTime checkInTime;
     
     private LocalTime checkOutTime;
     
     @Column(nullable = false)
     private Boolean isPresent = true;
+    
+    @Column(length = 50)
+    private String attendanceStatus; // PRESENT, ABSENT, SICK_LEAVE, HALF_DAY, CASUAL_LEAVE, WORK_FROM_HOME
+    
+    private Double hoursWorked; // For half day tracking
     
     private String notes;
     

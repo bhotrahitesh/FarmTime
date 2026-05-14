@@ -5,6 +5,7 @@ import com.farmtime.repository.PaymentRepository;
 import com.farmtime.repository.TimeOffRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,15 +21,19 @@ public class DataCleanupService {
     private final PaymentRepository paymentRepository;
     private final TimeOffRepository timeOffRepository;
     
+    @Value("${data.retention.months:2}")
+    private int retentionMonths;
+    
     /**
-     * Runs daily at 2 AM to delete records older than 2 months
+     * Runs daily at 2 AM to delete records older than configured retention period
+     * Schedule can be configured via data.cleanup.cron property
      */
-    @Scheduled(cron = "0 0 2 * * ?")
+    @Scheduled(cron = "${data.cleanup.cron:0 0 2 * * ?}")
     @Transactional
     public void cleanupOldData() {
-        log.info("Starting scheduled data cleanup...");
+        log.info("Starting scheduled data cleanup (retention period: {} months)...", retentionMonths);
         
-        LocalDate cutoffDate = LocalDate.now().minusMonths(2);
+        LocalDate cutoffDate = LocalDate.now().minusMonths(retentionMonths);
         
         try {
             // Delete old attendance records
