@@ -48,6 +48,17 @@ public class HealthController {
     }
     
     /**
+     * Lightweight ping endpoint for keep-alive
+     */
+    @GetMapping("/ping")
+    public ResponseEntity<Map<String, String>> ping() {
+        Map<String, String> response = new HashMap<>();
+        response.put("status", "alive");
+        response.put("timestamp", LocalDateTime.now().toString());
+        return ResponseEntity.ok(response);
+    }
+    
+    /**
      * Detailed database connection test
      */
     @GetMapping("/database")
