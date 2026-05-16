@@ -1,0 +1,34 @@
+name: Keep Render Service Alive
+
+# This GitHub Action pings your Render service every 10 minutes to prevent cold starts
+# GitHub Actions has generous free tier limits for public repositories
+
+on:
+  schedule:
+    # Runs every 10 minutes
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Ping Render Service
+        run: |
+          echo "Pinging Render service at $(date)"
+          
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time 30 \
+            https://farmtime-backend-xzj0.onrender.com/api/health/ping)
+          
+          if [ "$response" = "200" ]; then
+            echo "✓ Server is alive! HTTP $response"
+          else
+            echo "✗ Server returned HTTP $response"
+            exit 1
+          fi
+      
+      - name: Log result
+        if: always()
+        run: echo "Keep-alive ping completed at $(date)"

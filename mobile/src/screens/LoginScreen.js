@@ -27,7 +27,13 @@ export default function LoginScreen({ navigation }) {
       await signIn(response.data.token);
     } catch (error) {
       const errorData = error.response?.data;
-      if (errorData?.status === 'PENDING_APPROVAL') {
+      if (error.code === 'ECONNABORTED') {
+        Alert.alert(
+          'Connection Timeout',
+          'The server is taking longer than usual to respond. This may be due to server startup. Please try again in a moment.',
+          [{ text: 'OK' }]
+        );
+      } else if (errorData?.status === 'PENDING_APPROVAL') {
         Alert.alert(
           'Account Pending Approval',
           errorData.message,
