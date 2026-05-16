@@ -26,8 +26,9 @@
       }
     },
     "owner": "hiteshrajbhotra",
-    "runtimeVersion": {
-      "policy": "sdkVersion"
+    "runtimeVersion": "1.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/0c2e15f5-f87f-4d55-bb6e-442a7c6b068b"
     }
   }
 }
