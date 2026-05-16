@@ -9,13 +9,12 @@ React Native mobile application for FarmTime Poultry Farm Management.
    npm install
    ```
 
-2. **Update API URL** in `src/services/api.js`:
-   ```javascript
-   const API_BASE_URL = 'http://YOUR_IP:8080/api';
-   ```
-   - iOS Simulator: `http://localhost:8080/api`
-   - Android Emulator: `http://10.0.2.2:8080/api`
-   - Physical Device: `http://YOUR_COMPUTER_IP:8080/api`
+2. **API Configuration** in `src/services/api.js`:
+   - **Production Mode (Default)**: Uses `https://farmtime-backend-xzj0.onrender.com/api`
+   - **Local Testing**: Set `USE_LOCAL_API = true` in `src/services/api.js`
+     - iOS Simulator: `http://localhost:8080/api`
+     - Android Emulator: `http://10.0.2.2:8080/api`
+     - Physical Device: Update to `http://YOUR_COMPUTER_IP:8080/api`
 
 3. **Start Development Server**:
    ```bash

@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "FarmTime",
-    "slug": "farmtime-mobile",
+    "slug": "farmtime",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -17,7 +17,17 @@
       "adaptiveIcon": {
         "backgroundColor": "#4CAF50"
       },
-      "package": "com.farmtime.mobile"
+      "package": "com.farmtime.mobile",
+      "versionCode": 1
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0c2e15f5-f87f-4d55-bb6e-442a7c6b068b"
+      }
+    },
+    "owner": "hiteshrajbhotra",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
     }
   }
 }

@@ -2,11 +2,18 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// API URL configuration for different platforms
+// API URL configuration
+// Set USE_LOCAL_API to true for local development/testing
+// Set USE_LOCAL_API to false to use production server on Render
+const USE_LOCAL_API = false;
+
+const PRODUCTION_API_URL = 'https://farmtime-backend-xzj0.onrender.com/api';
+
+// Local API URL configuration for different platforms
 // iOS Simulator: localhost works
 // Android Emulator: Use 10.0.2.2 (special alias to host machine's localhost)
 // Physical Device: Use your computer's IP address (find with: ifconfig | grep "inet ")
-const getApiUrl = () => {
+const getLocalApiUrl = () => {
   if (Platform.OS === 'android') {
     // Android emulator uses 10.0.2.2 to access host machine's localhost
     return 'http://10.0.2.2:8080/api';
@@ -15,7 +22,7 @@ const getApiUrl = () => {
   return 'http://localhost:8080/api';
 };
 
-const API_BASE_URL = getApiUrl();
+const API_BASE_URL = USE_LOCAL_API ? getLocalApiUrl() : PRODUCTION_API_URL;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
