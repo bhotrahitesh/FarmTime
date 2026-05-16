@@ -12,41 +12,49 @@ This guide explains how to deploy only the backend application to Render, even t
 
 ### Option 1: Using render.yaml (Recommended - Infrastructure as Code)
 
-The `render.yaml` file at the project root configures Render to deploy only the backend.
+The `render.yaml` file at the project root configures Render to deploy only the backend with Neon database.
 
 **Steps:**
 
-1. **Push to GitHub:**
+1. **Get Neon Database Credentials:**
+   - Go to your Neon dashboard (https://console.neon.tech)
+   - Copy your database connection details:
+     - Connection string (or host, database name, username, password)
+
+2. **Push to GitHub:**
    ```bash
    git add .
    git commit -m "Add Render deployment configuration"
    git push origin main
    ```
 
-2. **Connect to Render:**
+3. **Connect to Render:**
    - Go to https://dashboard.render.com
    - Click "New +" → "Blueprint"
    - Connect your GitHub repository
    - Render will automatically detect `render.yaml`
-   - Click "Apply" to create services
+   - **Before clicking Apply**, you'll be prompted to add environment variables
 
-3. **Configure Environment Variables:**
-   After deployment, go to your service settings and add:
+4. **Configure Environment Variables:**
+   Add these required variables:
+   - `SPRING_DATASOURCE_URL`: Your Neon JDBC URL (format: `jdbc:postgresql://your-neon-host.neon.tech:5432/your_db?sslmode=require`)
+   - `SPRING_DATASOURCE_USERNAME`: Your Neon database username
+   - `SPRING_DATASOURCE_PASSWORD`: Your Neon database password
+   - `JWT_SECRET`: Generate a secure random string (use `openssl rand -base64 64`)
    - `CORS_ALLOWED_ORIGINS`: Your mobile app URL (e.g., `https://yourdomain.com` or `*` for testing)
 
-4. **Database Setup:**
-   Render will automatically create a PostgreSQL database and connect it to your app.
+5. **Deploy:**
+   - Click "Apply" to create the service
+   - Render will build and deploy using the `neon` profile
 
 ### Option 2: Manual Web Service Setup
 
 If you prefer manual setup:
 
-1. **Create PostgreSQL Database:**
-   - Dashboard → "New +" → "PostgreSQL"
-   - Name: `farmtime-db`
-   - Plan: Free
-   - Click "Create Database"
-   - Copy the "Internal Database URL"
+1. **Prepare Neon Database:**
+   - Ensure your Neon database is set up and running
+   - Copy your Neon connection details from https://console.neon.tech
+   - Note: You're using your existing Neon database, not creating a new one on Render
 
 2. **Create Web Service:**
    - Dashboard → "New +" → "Web Service"
@@ -63,15 +71,20 @@ If you prefer manual setup:
 3. **Environment Variables:**
    Add these in the "Environment" section:
    ```
-   SPRING_PROFILES_ACTIVE=prod
-   SPRING_DATASOURCE_URL=<paste-internal-database-url>
-   SPRING_DATASOURCE_USERNAME=<from-database-credentials>
-   SPRING_DATASOURCE_PASSWORD=<from-database-credentials>
+   SPRING_PROFILES_ACTIVE=neon
+   SPRING_DATASOURCE_URL=jdbc:postgresql://<your-neon-host>.neon.tech:5432/<your-db-name>?sslmode=require
+   SPRING_DATASOURCE_USERNAME=<your-neon-username>
+   SPRING_DATASOURCE_PASSWORD=<your-neon-password>
    JWT_SECRET=<generate-a-secure-random-string>
    JWT_EXPIRATION=86400000
    CORS_ALLOWED_ORIGINS=*
    JAVA_OPTS=-Xms256m -Xmx512m
    ```
+   
+   **Important for Neon:**
+   - Always include `?sslmode=require` at the end of the JDBC URL
+   - Use the connection string from your Neon dashboard
+   - Neon URLs typically look like: `ep-xxx-xxx.us-east-2.aws.neon.tech`
 
 4. **Health Check:**
    - Path: `/api/health`
@@ -90,18 +103,22 @@ This tells Render to:
 1. Use the Dockerfile in the backend directory
 2. Build only from the backend directory (ignoring mobile code)
 
-### Database Connection
-Render provides an "Internal Database URL" in this format:
+### Database Connection (Neon)
+Your app uses the `neon` profile which connects to your Neon PostgreSQL database.
+
+Neon connection string format:
 ```
-postgresql://user:password@host:5432/database
+postgresql://user:password@ep-xxx-xxx.region.aws.neon.tech:5432/database?sslmode=require
 ```
 
-Convert it to Spring Boot format:
+Convert it to Spring Boot JDBC format:
 ```
-SPRING_DATASOURCE_URL=jdbc:postgresql://host:5432/database
+SPRING_DATASOURCE_URL=jdbc:postgresql://ep-xxx-xxx.region.aws.neon.tech:5432/database?sslmode=require
 SPRING_DATASOURCE_USERNAME=user
 SPRING_DATASOURCE_PASSWORD=password
 ```
+
+**Critical:** Always include `?sslmode=require` for Neon connections.
 
 ### CORS Configuration
 Update `CORS_ALLOWED_ORIGINS` with your mobile app's domain or IP addresses:
@@ -145,9 +162,14 @@ export const API_BASE_URL = 'https://your-app-name.onrender.com';
 
 ## Free Tier Limitations
 
+**Render:**
 - **Web Service:** Spins down after 15 minutes of inactivity (first request may take 30-50 seconds)
-- **Database:** 1GB storage, 97 hours/month runtime
 - **Build Time:** 500 build minutes/month
+
+**Neon (Your Database):**
+- Check your Neon plan limits at https://neon.tech/pricing
+- Free tier typically includes: 0.5 GB storage, compute hours limits
+- Database stays active based on your Neon plan
 
 ## Troubleshooting
 
@@ -162,9 +184,11 @@ export const API_BASE_URL = 'https://your-app-name.onrender.com';
 - Check logs for specific errors
 
 ### Database Connection Issues
-- Use "Internal Database URL" (not External)
-- Ensure JDBC URL format: `jdbc:postgresql://...`
-- Verify username and password are correct
+- Ensure `?sslmode=require` is appended to your Neon JDBC URL
+- Verify Neon database is active (check Neon dashboard)
+- Ensure JDBC URL format: `jdbc:postgresql://ep-xxx.neon.tech:5432/dbname?sslmode=require`
+- Verify username and password are correct from Neon dashboard
+- Check if your Neon project is in active state (not suspended)
 
 ### CORS Errors
 - Update `CORS_ALLOWED_ORIGINS` environment variable
