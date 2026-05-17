@@ -1,0 +1,282 @@
+# AWS Deployment Configuration for FarmTime Backend
+# This file contains configuration for deploying to AWS ECS/EC2 with RDS PostgreSQL
+
+# ============================================
+# AWS ECS Task Definition Configuration
+# ============================================
+AWSTaskDefinition:
+  family: farmtime-backend
+  networkMode: awsvpc
+  requiresCompatibilities:
+    - FARGATE
+  cpu: '512'  # 0.5 vCPU
+  memory: '1024'  # 1 GB
+  executionRoleArn: arn:aws:iam::{ACCOUNT_ID}:role/ecsTaskExecutionRole
+  taskRoleArn: arn:aws:iam::{ACCOUNT_ID}:role/farmtimeTaskRole
+  
+  containerDefinitions:
+    - name: farmtime-backend
+      image: {ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com/farmtime-backend:latest
+      essential: true
+      portMappings:
+        - containerPort: 8080
+          protocol: tcp
+      
+      environment:
+        - name: SPRING_PROFILES_ACTIVE
+          value: aws
+        - name: JWT_EXPIRATION
+          value: '86400000'
+        - name: JAVA_OPTS
+          value: '-Xms512m -Xmx1024m'
+        - name: DATA_RETENTION_MONTHS
+          value: '2'
+        - name: DATA_CLEANUP_CRON
+          value: '0 0 2 * * ?'
+      
+      secrets:
+        - name: SPRING_DATASOURCE_URL
+          valueFrom: arn:aws:secretsmanager:{REGION}:{ACCOUNT_ID}:secret:farmtime/db/url
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom: arn:aws:secretsmanager:{REGION}:{ACCOUNT_ID}:secret:farmtime/db/username
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom: arn:aws:secretsmanager:{REGION}:{ACCOUNT_ID}:secret:farmtime/db/password
+        - name: JWT_SECRET
+          valueFrom: arn:aws:secretsmanager:{REGION}:{ACCOUNT_ID}:secret:farmtime/jwt/secret
+        - name: CORS_ALLOWED_ORIGINS
+          valueFrom: arn:aws:secretsmanager:{REGION}:{ACCOUNT_ID}:secret:farmtime/cors/origins
+      
+      healthCheck:
+        command:
+          - CMD-SHELL
+          - wget --quiet --tries=1 --spider http://localhost:8080/api/health || exit 1
+        interval: 30
+        timeout: 5
+        retries: 3
+        startPeriod: 60
+      
+      logConfiguration:
+        logDriver: awslogs
+        options:
+          awslogs-group: /ecs/farmtime-backend
+          awslogs-region: {REGION}
+          awslogs-stream-prefix: ecs
+
+# ============================================
+# AWS RDS PostgreSQL Configuration
+# ============================================
+AWSRDSConfiguration:
+  DBInstanceIdentifier: farmtime-db
+  DBInstanceClass: db.t3.micro  # Free tier eligible
+  Engine: postgres
+  EngineVersion: '15.4'
+  MasterUsername: farmtime_admin
+  AllocatedStorage: 20  # GB
+  StorageType: gp3
+  StorageEncrypted: true
+  BackupRetentionPeriod: 7
+  PreferredBackupWindow: '03:00-04:00'
+  PreferredMaintenanceWindow: 'sun:04:00-sun:05:00'
+  MultiAZ: false  # Set to true for production high availability
+  PubliclyAccessible: false
+  VPCSecurityGroups:
+    - sg-{SECURITY_GROUP_ID}
+  DBSubnetGroupName: farmtime-db-subnet-group
+  DBName: farmtime_db
+  
+  # Parameter Group Settings
+  DBParameterGroup:
+    timezone: Asia/Kolkata
+    max_connections: 100
+    shared_buffers: 256MB
+    effective_cache_size: 1GB
+    maintenance_work_mem: 64MB
+    checkpoint_completion_target: 0.9
+    wal_buffers: 16MB
+    default_statistics_target: 100
+    random_page_cost: 1.1
+    effective_io_concurrency: 200
+
+# ============================================
+# AWS ECS Service Configuration
+# ============================================
+AWSECSService:
+  serviceName: farmtime-backend-service
+  cluster: farmtime-cluster
+  taskDefinition: farmtime-backend
+  desiredCount: 1  # Increase for high availability
+  launchType: FARGATE
+  platformVersion: LATEST
+  
+  networkConfiguration:
+    awsvpcConfiguration:
+      subnets:
+        - subnet-{SUBNET_ID_1}
+        - subnet-{SUBNET_ID_2}
+      securityGroups:
+        - sg-{BACKEND_SECURITY_GROUP_ID}
+      assignPublicIp: ENABLED  # Set to DISABLED if using NAT Gateway
+  
+  loadBalancers:
+    - targetGroupArn: arn:aws:elasticloadbalancing:{REGION}:{ACCOUNT_ID}:targetgroup/farmtime-backend-tg/{ID}
+      containerName: farmtime-backend
+      containerPort: 8080
+  
+  healthCheckGracePeriodSeconds: 60
+  
+  deploymentConfiguration:
+    maximumPercent: 200
+    minimumHealthyPercent: 100
+    deploymentCircuitBreaker:
+      enable: true
+      rollback: true
+
+# ============================================
+# Application Load Balancer Configuration
+# ============================================
+AWSLoadBalancer:
+  name: farmtime-alb
+  type: application
+  scheme: internet-facing
+  ipAddressType: ipv4
+  subnets:
+    - subnet-{PUBLIC_SUBNET_ID_1}
+    - subnet-{PUBLIC_SUBNET_ID_2}
+  securityGroups:
+    - sg-{ALB_SECURITY_GROUP_ID}
+  
+  targetGroup:
+    name: farmtime-backend-tg
+    port: 8080
+    protocol: HTTP
+    targetType: ip
+    healthCheck:
+      enabled: true
+      path: /api/health
+      protocol: HTTP
+      interval: 30
+      timeout: 5
+      healthyThreshold: 2
+      unhealthyThreshold: 3
+      matcher: '200'
+  
+  listeners:
+    - port: 80
+      protocol: HTTP
+      defaultActions:
+        - type: forward
+          targetGroupArn: arn:aws:elasticloadbalancing:{REGION}:{ACCOUNT_ID}:targetgroup/farmtime-backend-tg/{ID}
+    # Add HTTPS listener after setting up SSL certificate
+    # - port: 443
+    #   protocol: HTTPS
+    #   certificateArn: arn:aws:acm:{REGION}:{ACCOUNT_ID}:certificate/{CERT_ID}
+    #   defaultActions:
+    #     - type: forward
+    #       targetGroupArn: arn:aws:elasticloadbalancing:{REGION}:{ACCOUNT_ID}:targetgroup/farmtime-backend-tg/{ID}
+
+# ============================================
+# Security Groups Configuration
+# ============================================
+SecurityGroups:
+  
+  # ALB Security Group
+  ALBSecurityGroup:
+    name: farmtime-alb-sg
+    description: Security group for FarmTime Application Load Balancer
+    ingress:
+      - protocol: tcp
+        fromPort: 80
+        toPort: 80
+        cidrBlocks: ['0.0.0.0/0']
+      - protocol: tcp
+        fromPort: 443
+        toPort: 443
+        cidrBlocks: ['0.0.0.0/0']
+    egress:
+      - protocol: -1
+        fromPort: 0
+        toPort: 0
+        cidrBlocks: ['0.0.0.0/0']
+  
+  # Backend Security Group
+  BackendSecurityGroup:
+    name: farmtime-backend-sg
+    description: Security group for FarmTime Backend ECS tasks
+    ingress:
+      - protocol: tcp
+        fromPort: 8080
+        toPort: 8080
+        sourceSecurityGroupId: sg-{ALB_SECURITY_GROUP_ID}
+    egress:
+      - protocol: -1
+        fromPort: 0
+        toPort: 0
+        cidrBlocks: ['0.0.0.0/0']
+  
+  # RDS Security Group
+  RDSSecurityGroup:
+    name: farmtime-rds-sg
+    description: Security group for FarmTime RDS PostgreSQL
+    ingress:
+      - protocol: tcp
+        fromPort: 5432
+        toPort: 5432
+        sourceSecurityGroupId: sg-{BACKEND_SECURITY_GROUP_ID}
+    egress:
+      - protocol: -1
+        fromPort: 0
+        toPort: 0
+        cidrBlocks: ['0.0.0.0/0']
+
+# ============================================
+# AWS Secrets Manager Configuration
+# ============================================
+AWSSecretsManager:
+  secrets:
+    - name: farmtime/db/url
+      description: Database connection URL
+      value: jdbc:postgresql://{RDS_ENDPOINT}:5432/farmtime_db
+    
+    - name: farmtime/db/username
+      description: Database username
+      value: farmtime_admin
+    
+    - name: farmtime/db/password
+      description: Database password
+      value: {GENERATE_SECURE_PASSWORD}
+    
+    - name: farmtime/jwt/secret
+      description: JWT secret key
+      value: {GENERATE_SECURE_JWT_SECRET}
+    
+    - name: farmtime/cors/origins
+      description: Allowed CORS origins
+      value: https://yourdomain.com,https://app.yourdomain.com
+
+# ============================================
+# CloudWatch Logs Configuration
+# ============================================
+CloudWatchLogs:
+  logGroup: /ecs/farmtime-backend
+  retentionInDays: 7
+  
+# ============================================
+# Auto Scaling Configuration (Optional)
+# ============================================
+AutoScaling:
+  minCapacity: 1
+  maxCapacity: 4
+  targetCPUUtilization: 70
+  targetMemoryUtilization: 80
+  scaleInCooldown: 300
+  scaleOutCooldown: 60
+
+# ============================================
+# Estimated Monthly Costs (as of 2024)
+# ============================================
+# RDS db.t3.micro: ~$15-20/month
+# ECS Fargate (0.5 vCPU, 1GB): ~$15-20/month
+# ALB: ~$16-20/month
+# Data Transfer: ~$5-10/month
+# CloudWatch Logs: ~$1-5/month
+# Total: ~$52-75/month (approximate)

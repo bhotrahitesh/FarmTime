@@ -42,6 +42,12 @@ mobile/web-build/
 # Database credentials
 backend/src/main/resources/application-neon.properties
 
+# AWS credentials and sensitive files
+task-definition.json
+.aws/
+*.pem
+aws-credentials.txt
+
 # Logs
 logs/
 *.log
