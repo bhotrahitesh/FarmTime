@@ -4,10 +4,15 @@ import { Platform } from 'react-native';
 
 // API URL configuration
 // Set USE_LOCAL_API to true for local development/testing
-// Set USE_LOCAL_API to false to use production server on Render
+// Set USE_LOCAL_API to false to use production server (EC2 or Render)
 const USE_LOCAL_API = false;
 
-const PRODUCTION_API_URL = 'https://farmtime-backend-xzj0.onrender.com/api';
+// Production API URLs - CURRENTLY USING EC2
+const EC2_API_URL = 'http://13.127.116.232:8080/api';
+const RENDER_API_URL = 'https://farmtime-backend-xzj0.onrender.com/api';
+
+// ACTIVE: Using EC2 backend
+const PRODUCTION_API_URL = EC2_API_URL;
 
 // Local API URL configuration for different platforms
 // iOS Simulator: localhost works
