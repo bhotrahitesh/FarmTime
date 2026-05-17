@@ -1,6 +1,7 @@
 package com.farmtime.controller;
 
 import com.farmtime.dto.AttendanceDTO;
+import com.farmtime.service.AttendanceSchedulerService;
 import com.farmtime.service.AttendanceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/attendance")
@@ -18,6 +20,7 @@ import java.util.List;
 public class AttendanceController {
     
     private final AttendanceService attendanceService;
+    private final AttendanceSchedulerService attendanceSchedulerService;
     
     @PostMapping
     public ResponseEntity<AttendanceDTO> markAttendance(@RequestBody AttendanceDTO attendanceDTO) {
@@ -52,5 +55,11 @@ public class AttendanceController {
     public ResponseEntity<Void> deleteAttendance(@PathVariable Long id) {
         attendanceService.deleteAttendance(id);
         return ResponseEntity.noContent().build();
+    }
+    
+    @PostMapping("/auto-mark")
+    public ResponseEntity<Map<String, String>> triggerAutoMarkAttendance() {
+        String result = attendanceSchedulerService.manualAutoMarkAttendance();
+        return ResponseEntity.ok(Map.of("message", result));
     }
 }

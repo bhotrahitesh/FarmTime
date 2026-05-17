@@ -76,9 +76,19 @@ export default function EmployeeDetailScreen({ route, navigation }) {
       <View style={styles.actions}>
         <Button
           mode="contained"
+          onPress={() => navigation.navigate('EditEmployee', { employee })}
+          style={styles.editButton}
+          buttonColor="#2196F3"
+          icon="pencil"
+        >
+          Edit Employee
+        </Button>
+        <Button
+          mode="contained"
           onPress={handleDelete}
           style={styles.deleteButton}
           buttonColor="#F44336"
+          icon="delete"
         >
           Delete Employee
         </Button>
@@ -122,6 +132,10 @@ const styles = StyleSheet.create({
   },
   actions: {
     padding: 16,
+  },
+  editButton: {
+    paddingVertical: 6,
+    marginBottom: 12,
   },
   deleteButton: {
     paddingVertical: 6,

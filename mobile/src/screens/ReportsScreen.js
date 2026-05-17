@@ -62,7 +62,7 @@ export default function ReportsScreen() {
 
     setLoading(true);
     try {
-      const employeeIds = selectedEmployees.length > 0 ? selectedEmployees : null;
+      const employeeIds = selectedEmployees.length > 0 ? selectedEmployees : [];
       const formattedStartDate = startDate.toISOString().split('T')[0];
       const formattedEndDate = endDate.toISOString().split('T')[0];
 

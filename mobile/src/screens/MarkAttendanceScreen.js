@@ -12,7 +12,6 @@ const ATTENDANCE_STATUSES = [
   { value: 'ABSENT', label: 'Absent' },
   { value: 'SICK_LEAVE', label: 'Sick Leave' },
   { value: 'CASUAL_LEAVE', label: 'Casual Leave' },
-  { value: 'WORK_FROM_HOME', label: 'Work From Home' },
 ];
 
 export default function MarkAttendanceScreen({ navigation }) {
@@ -157,7 +156,7 @@ export default function MarkAttendanceScreen({ navigation }) {
           ))}
         </Menu>
 
-        {(attendanceStatus === 'PRESENT' || attendanceStatus === 'HALF_DAY' || attendanceStatus === 'WORK_FROM_HOME') && (
+        {(attendanceStatus === 'PRESENT' || attendanceStatus === 'HALF_DAY') && (
           <>
             <Button
               mode="outlined"

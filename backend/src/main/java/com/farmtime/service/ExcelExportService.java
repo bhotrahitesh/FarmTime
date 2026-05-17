@@ -1,5 +1,6 @@
 package com.farmtime.service;
 
+import com.farmtime.dto.SalaryCycleSummaryDTO;
 import com.farmtime.model.Attendance;
 import com.farmtime.model.Employee;
 import com.farmtime.model.Payment;
@@ -25,6 +26,7 @@ public class ExcelExportService {
     private final AttendanceRepository attendanceRepository;
     private final PaymentRepository paymentRepository;
     private final EmployeeRepository employeeRepository;
+    private final SalaryCycleService salaryCycleService;
     
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
@@ -98,16 +100,23 @@ public class ExcelExportService {
             Row titleRow = sheet.createRow(0);
             Cell titleCell = titleRow.createCell(0);
             titleCell.setCellValue("Attendance Report");
-            titleCell.setCellStyle(createTitleStyle(workbook));
+            CellStyle titleStyle = createTitleStyle(workbook);
+            titleStyle.setAlignment(HorizontalAlignment.CENTER);
+            titleCell.setCellStyle(titleStyle);
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 6));
             
             // Create date range row
             Row dateRangeRow = sheet.createRow(1);
             Cell dateRangeCell = dateRangeRow.createCell(0);
             dateRangeCell.setCellValue("Period: " + startDate.format(DATE_FORMATTER) + " to " + endDate.format(DATE_FORMATTER));
+            CellStyle dateRangeStyle = workbook.createCellStyle();
+            dateRangeStyle.setAlignment(HorizontalAlignment.CENTER);
+            dateRangeCell.setCellStyle(dateRangeStyle);
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(1, 1, 0, 6));
             
             // Create header row
             Row headerRow = sheet.createRow(3);
-            String[] headers = {"S.No", "Employee Name", "Date", "Check In", "Check Out", "Status", "Notes"};
+            String[] headers = {"No.", "Employee Name", "Date", "Check In", "Check Out", "Status", "Notes"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -117,27 +126,47 @@ public class ExcelExportService {
             // Fill data rows
             int rowNum = 4;
             int serialNo = 1;
+            CellStyle centerStyle = workbook.createCellStyle();
+            centerStyle.setAlignment(HorizontalAlignment.CENTER);
+            
             for (Attendance attendance : attendanceList) {
                 Row row = sheet.createRow(rowNum++);
                 
-                row.createCell(0).setCellValue(serialNo++);
+                Cell serialCell = row.createCell(0);
+                serialCell.setCellValue(serialNo++);
+                serialCell.setCellStyle(centerStyle);
+                
                 row.createCell(1).setCellValue(attendance.getEmployee().getName());
                 
                 Cell dateCell = row.createCell(2);
                 dateCell.setCellValue(attendance.getAttendanceDate().format(DATE_FORMATTER));
+                dateCell.setCellStyle(centerStyle);
                 
-                row.createCell(3).setCellValue(attendance.getCheckInTime() != null ? 
+                Cell checkInCell = row.createCell(3);
+                checkInCell.setCellValue(attendance.getCheckInTime() != null ? 
                     attendance.getCheckInTime().format(TIME_FORMATTER) : "");
-                row.createCell(4).setCellValue(attendance.getCheckOutTime() != null ? 
+                checkInCell.setCellStyle(centerStyle);
+                
+                Cell checkOutCell = row.createCell(4);
+                checkOutCell.setCellValue(attendance.getCheckOutTime() != null ? 
                     attendance.getCheckOutTime().format(TIME_FORMATTER) : "");
-                row.createCell(5).setCellValue(attendance.getIsPresent() ? "Present" : "Absent");
+                checkOutCell.setCellStyle(centerStyle);
+                
+                Cell statusCell = row.createCell(5);
+                statusCell.setCellValue(attendance.getIsPresent() ? "Present" : "Absent");
+                statusCell.setCellStyle(centerStyle);
+                
                 row.createCell(6).setCellValue(attendance.getNotes() != null ? attendance.getNotes() : "");
             }
             
-            // Auto-size columns
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
+            // Set column widths
+            sheet.setColumnWidth(0, 1500);  // No. column - narrow
+            sheet.autoSizeColumn(1);  // Employee Name
+            sheet.setColumnWidth(2, 3500);  // Date
+            sheet.setColumnWidth(3, 2500);  // Check In
+            sheet.setColumnWidth(4, 2500);  // Check Out
+            sheet.setColumnWidth(5, 2500);  // Status
+            sheet.autoSizeColumn(6);  // Notes
             
             workbook.write(out);
             return out.toByteArray();
@@ -151,21 +180,30 @@ public class ExcelExportService {
             // Create styles
             CellStyle headerStyle = createHeaderStyle(workbook);
             CellStyle currencyStyle = createCurrencyStyle(workbook);
+            CellStyle centerStyle = workbook.createCellStyle();
+            centerStyle.setAlignment(HorizontalAlignment.CENTER);
             
             // Create title row
             Row titleRow = sheet.createRow(0);
             Cell titleCell = titleRow.createCell(0);
             titleCell.setCellValue("Payment Report");
-            titleCell.setCellStyle(createTitleStyle(workbook));
+            CellStyle titleStyle = createTitleStyle(workbook);
+            titleStyle.setAlignment(HorizontalAlignment.CENTER);
+            titleCell.setCellStyle(titleStyle);
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 7));
             
             // Create date range row
             Row dateRangeRow = sheet.createRow(1);
             Cell dateRangeCell = dateRangeRow.createCell(0);
             dateRangeCell.setCellValue("Period: " + startDate.format(DATE_FORMATTER) + " to " + endDate.format(DATE_FORMATTER));
+            CellStyle dateRangeStyle = workbook.createCellStyle();
+            dateRangeStyle.setAlignment(HorizontalAlignment.CENTER);
+            dateRangeCell.setCellStyle(dateRangeStyle);
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(1, 1, 0, 7));
             
             // Create header row
             Row headerRow = sheet.createRow(3);
-            String[] headers = {"S.No", "Employee Name", "Date", "Amount (₹)", "Payment Type", "Description"};
+            String[] headers = {"No.", "Employee Name", "Monthly Salary (₹)", "Date", "Amount (₹)", "Payment Type", "Remaining (₹)", "Description"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -176,31 +214,69 @@ public class ExcelExportService {
             int rowNum = 4;
             int serialNo = 1;
             double totalAmount = 0.0;
+            String currentEmployee = null;
             
             for (Payment payment : paymentList) {
                 Row row = sheet.createRow(rowNum++);
                 
-                row.createCell(0).setCellValue(serialNo++);
-                row.createCell(1).setCellValue(payment.getEmployee().getName());
-                row.createCell(2).setCellValue(payment.getPaymentDate().format(DATE_FORMATTER));
+                Cell serialCell = row.createCell(0);
+                serialCell.setCellValue(serialNo++);
+                serialCell.setCellStyle(centerStyle);
                 
-                Cell amountCell = row.createCell(3);
+                String employeeName = payment.getEmployee().getName();
+                row.createCell(1).setCellValue(employeeName);
+                
+                // Add monthly salary and calculate remaining for current cycle
+                Cell monthlySalaryCell = row.createCell(2);
+                Cell remainingCell = row.createCell(6);
+                
+                try {
+                    SalaryCycleSummaryDTO cycleSummary = salaryCycleService.getSalaryCycleSummary(
+                        payment.getEmployee().getId(), 
+                        payment.getPaymentDate()
+                    );
+                    monthlySalaryCell.setCellValue(cycleSummary.getMonthlySalary());
+                    monthlySalaryCell.setCellStyle(currencyStyle);
+                    
+                    remainingCell.setCellValue(cycleSummary.getRemainingAmount());
+                    CellStyle remainingStyle = createCurrencyStyle(workbook);
+                    if (cycleSummary.getRemainingAmount() < 0) {
+                        Font redFont = workbook.createFont();
+                        redFont.setColor(IndexedColors.RED.getIndex());
+                        remainingStyle.setFont(redFont);
+                    }
+                    remainingCell.setCellStyle(remainingStyle);
+                } catch (Exception e) {
+                    monthlySalaryCell.setCellValue(payment.getEmployee().getMonthlySalary());
+                    monthlySalaryCell.setCellStyle(currencyStyle);
+                    remainingCell.setCellValue(0.0);
+                    remainingCell.setCellStyle(currencyStyle);
+                }
+                
+                Cell dateCell = row.createCell(3);
+                dateCell.setCellValue(payment.getPaymentDate().format(DATE_FORMATTER));
+                dateCell.setCellStyle(centerStyle);
+                
+                Cell amountCell = row.createCell(4);
                 amountCell.setCellValue(payment.getAmount());
                 amountCell.setCellStyle(currencyStyle);
                 
-                row.createCell(4).setCellValue(payment.getPaymentType().toString().replace("_", " "));
-                row.createCell(5).setCellValue(payment.getDescription() != null ? payment.getDescription() : "");
+                Cell typeCell = row.createCell(5);
+                typeCell.setCellValue(payment.getPaymentType().toString().replace("_", " "));
+                typeCell.setCellStyle(centerStyle);
+                
+                row.createCell(7).setCellValue(payment.getDescription() != null ? payment.getDescription() : "");
                 
                 totalAmount += payment.getAmount();
             }
             
             // Add total row
             Row totalRow = sheet.createRow(rowNum + 1);
-            Cell totalLabelCell = totalRow.createCell(2);
+            Cell totalLabelCell = totalRow.createCell(3);
             totalLabelCell.setCellValue("Total:");
             totalLabelCell.setCellStyle(headerStyle);
             
-            Cell totalAmountCell = totalRow.createCell(3);
+            Cell totalAmountCell = totalRow.createCell(4);
             totalAmountCell.setCellValue(totalAmount);
             CellStyle totalStyle = createCurrencyStyle(workbook);
             Font boldFont = workbook.createFont();
@@ -208,10 +284,15 @@ public class ExcelExportService {
             totalStyle.setFont(boldFont);
             totalAmountCell.setCellStyle(totalStyle);
             
-            // Auto-size columns
-            for (int i = 0; i < headers.length; i++) {
-                sheet.autoSizeColumn(i);
-            }
+            // Set column widths
+            sheet.setColumnWidth(0, 1500);  // No. column - narrow
+            sheet.autoSizeColumn(1);  // Employee Name
+            sheet.setColumnWidth(2, 4500);  // Monthly Salary
+            sheet.setColumnWidth(3, 3500);  // Date
+            sheet.setColumnWidth(4, 3500);  // Amount
+            sheet.setColumnWidth(5, 3500);  // Payment Type
+            sheet.setColumnWidth(6, 3500);  // Remaining
+            sheet.autoSizeColumn(7);  // Description
             
             workbook.write(out);
             return out.toByteArray();

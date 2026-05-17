@@ -39,6 +39,12 @@ public class Employee {
     @Column(nullable = false)
     private Double monthlySalary;
     
+    // Deprecated: Now using global salary.payday configuration
+    // Kept for database compatibility - will be removed in future migration
+    @Deprecated
+    @Column(name = "salary_payday")
+    private Integer salaryPayday;
+    
     @Column(nullable = false)
     private Boolean isActive = true;
     

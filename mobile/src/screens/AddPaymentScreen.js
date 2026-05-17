@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Platform } from 'react-native';
-import { TextInput, Button, Menu } from 'react-native-paper';
+import { TextInput, Button, Menu, Card, Text, Paragraph } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { getActiveEmployees, createPayment } from '../services/api';
+import { getActiveEmployees, createPayment, getCurrentSalaryCycleSummary } from '../services/api';
 import { formatDateForDisplay } from '../utils/dateFormatter';
 import { getErrorMessage } from '../utils/errorHandler';
 
-const PAYMENT_TYPES = ['SALARY', 'ADVANCE', 'BONUS', 'DEDUCTION'];
+const PAYMENT_TYPES = ['SALARY', 'ADVANCE'];
 
 export default function AddPaymentScreen({ navigation }) {
   const [employees, setEmployees] = useState([]);
@@ -19,6 +19,7 @@ export default function AddPaymentScreen({ navigation }) {
   const [description, setDescription] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [salaryCycleSummary, setSalaryCycleSummary] = useState(null);
 
   useEffect(() => {
     loadEmployees();
@@ -82,14 +83,43 @@ export default function AddPaymentScreen({ navigation }) {
           {employees.map((emp) => (
             <Menu.Item
               key={emp.id}
-              onPress={() => {
+              onPress={async () => {
                 setSelectedEmployee(emp);
                 setEmployeeMenuVisible(false);
+                try {
+                  const response = await getCurrentSalaryCycleSummary(emp.id);
+                  setSalaryCycleSummary(response.data);
+                } catch (error) {
+                  console.error('Failed to load salary cycle summary:', error);
+                  setSalaryCycleSummary(null);
+                }
               }}
               title={emp.name}
             />
           ))}
         </Menu>
+
+        {salaryCycleSummary && (
+          <Card style={styles.summaryCard}>
+            <Card.Content>
+              <Text style={styles.summaryTitle}>Current Salary Cycle</Text>
+              <View style={styles.summaryRow}>
+                <Paragraph>Monthly Salary:</Paragraph>
+                <Paragraph style={styles.summaryValue}>₹{salaryCycleSummary.monthlySalary?.toLocaleString('en-IN')}</Paragraph>
+              </View>
+              <View style={styles.summaryRow}>
+                <Paragraph>Total Paid:</Paragraph>
+                <Paragraph style={styles.summaryValue}>₹{salaryCycleSummary.totalPaid?.toLocaleString('en-IN')}</Paragraph>
+              </View>
+              <View style={styles.summaryRow}>
+                <Text style={styles.remainingLabel}>Remaining:</Text>
+                <Text style={[styles.remainingValue, salaryCycleSummary.remainingAmount >= 0 ? styles.positive : styles.negative]}>
+                  ₹{salaryCycleSummary.remainingAmount?.toLocaleString('en-IN')}
+                </Text>
+              </View>
+            </Card.Content>
+          </Card>
+        )}
 
         <Menu
           visible={typeMenuVisible}
@@ -186,5 +216,37 @@ const styles = StyleSheet.create({
   button: {
     marginTop: 16,
     paddingVertical: 6,
+  },
+  summaryCard: {
+    marginBottom: 16,
+    backgroundColor: '#E3F2FD',
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#1976D2',
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  summaryValue: {
+    fontWeight: '600',
+  },
+  remainingLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  remainingValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  positive: {
+    color: '#4CAF50',
+  },
+  negative: {
+    color: '#F44336',
   },
 });

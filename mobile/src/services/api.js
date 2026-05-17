@@ -216,4 +216,19 @@ export const exportPaymentReport = (employeeIds, startDate, endDate) => {
   });
 };
 
+// Salary Cycle APIs
+export const getCurrentSalaryCycleSummary = (employeeId) => {
+  return api.get(`/salary-cycle/employee/${employeeId}/current`);
+};
+
+export const getSalaryCycleSummary = (employeeId, referenceDate) => {
+  return api.get(`/salary-cycle/employee/${employeeId}`, {
+    params: { referenceDate },
+  });
+};
+
+export const getAllEmployeesCurrentCycleSummary = () => {
+  return api.get('/salary-cycle/all-employees/current');
+};
+
 export default api;

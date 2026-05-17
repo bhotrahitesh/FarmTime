@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { FAB, Card, Title, Paragraph, Chip, Searchbar } from 'react-native-paper';
+import { FAB, Card, Title, Paragraph, Chip, Searchbar, Button } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
-import { getPaymentsByDateRange } from '../services/api';
+import { getPaymentsByDateRange, getAllEmployeesCurrentCycleSummary } from '../services/api';
 import { formatDate } from '../utils/dateFormatter';
 import { getErrorMessage } from '../utils/errorHandler';
 
@@ -57,10 +57,6 @@ export default function PaymentsScreen({ navigation }) {
         return '#4CAF50';
       case 'ADVANCE':
         return '#FF9800';
-      case 'BONUS':
-        return '#2196F3';
-      case 'DEDUCTION':
-        return '#F44336';
       default:
         return '#9E9E9E';
     }
@@ -87,12 +83,23 @@ export default function PaymentsScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <Searchbar
-        placeholder="Search by employee name"
-        onChangeText={handleSearch}
-        value={searchQuery}
-        style={styles.searchBar}
-      />
+      <View style={styles.header}>
+        <Searchbar
+          placeholder="Search by employee name"
+          onChangeText={handleSearch}
+          value={searchQuery}
+          style={styles.searchBar}
+        />
+        <Button
+          mode="contained"
+          icon="chart-box"
+          onPress={() => navigation.navigate('SalaryCycle')}
+          style={styles.summaryButton}
+          buttonColor="#2196F3"
+        >
+          Salary Cycle
+        </Button>
+      </View>
       <FlatList
         data={filteredPayments}
         renderItem={renderPayment}
@@ -116,9 +123,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  header: {
+    backgroundColor: '#fff',
+    paddingBottom: 8,
+  },
   searchBar: {
-    margin: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 8,
     elevation: 0,
+  },
+  summaryButton: {
+    marginHorizontal: 16,
+    marginBottom: 8,
   },
   list: {
     padding: 16,

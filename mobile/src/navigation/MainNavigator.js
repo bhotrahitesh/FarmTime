@@ -6,12 +6,14 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import HomeScreen from '../screens/HomeScreen';
 import EmployeesScreen from '../screens/EmployeesScreen';
 import AddEmployeeScreen from '../screens/AddEmployeeScreen';
+import EditEmployeeScreen from '../screens/EditEmployeeScreen';
 import EmployeeDetailScreen from '../screens/EmployeeDetailScreen';
 import AttendanceScreen from '../screens/AttendanceScreen';
 import MarkAttendanceScreen from '../screens/MarkAttendanceScreen';
 import EditAttendanceScreen from '../screens/EditAttendanceScreen';
 import PaymentsScreen from '../screens/PaymentsScreen';
 import AddPaymentScreen from '../screens/AddPaymentScreen';
+import SalaryCycleScreen from '../screens/SalaryCycleScreen';
 import TimeOffScreen from '../screens/TimeOffScreen';
 import AddTimeOffScreen from '../screens/AddTimeOffScreen';
 import ReportsScreen from '../screens/ReportsScreen';
@@ -31,6 +33,11 @@ function EmployeesStack() {
         name="AddEmployee" 
         component={AddEmployeeScreen}
         options={{ title: 'Add Employee' }}
+      />
+      <Stack.Screen 
+        name="EditEmployee" 
+        component={EditEmployeeScreen}
+        options={{ title: 'Edit Employee' }}
       />
       <Stack.Screen 
         name="EmployeeDetail" 
@@ -75,6 +82,11 @@ function PaymentsStack() {
         name="AddPayment" 
         component={AddPaymentScreen}
         options={{ title: 'Add Payment' }}
+      />
+      <Stack.Screen 
+        name="SalaryCycle" 
+        component={SalaryCycleScreen}
+        options={{ title: 'Salary Cycle Summary' }}
       />
     </Stack.Navigator>
   );

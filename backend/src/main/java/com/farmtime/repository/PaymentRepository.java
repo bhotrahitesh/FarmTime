@@ -14,6 +14,7 @@ import java.util.List;
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
     List<Payment> findByEmployeeAndPaymentDateBetweenOrderByPaymentDateDescCreatedAtDesc(Employee employee, LocalDate startDate, LocalDate endDate);
+    List<Payment> findByEmployeeAndPaymentDateBetween(Employee employee, LocalDate startDate, LocalDate endDate);
     List<Payment> findByPaymentDateBetweenOrderByPaymentDateDescCreatedAtDesc(LocalDate startDate, LocalDate endDate);
     List<Payment> findByEmployeeInAndPaymentDateBetweenOrderByPaymentDateDescCreatedAtDesc(List<Employee> employees, LocalDate startDate, LocalDate endDate);
     List<Payment> findByEmployeeOrderByPaymentDateDescCreatedAtDesc(Employee employee);

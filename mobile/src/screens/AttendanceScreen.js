@@ -71,7 +71,6 @@ export default function AttendanceScreen({ navigation }) {
       ABSENT: 'Absent',
       SICK_LEAVE: 'Sick Leave',
       CASUAL_LEAVE: 'Casual Leave',
-      WORK_FROM_HOME: 'Work From Home',
     };
     return labels[status] || (isPresent ? 'Present' : 'Absent');
   };
