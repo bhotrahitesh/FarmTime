@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FarmTime Icon Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            text-align: center;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #4CAF50;
+            margin-bottom: 20px;
+        }
+        
+        #iconCanvas {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            margin: 20px 0;
+            cursor: pointer;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 5px;
+            text-align: left;
+        }
+        
+        .preview {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .preview-item {
+            text-align: center;
+        }
+        
+        .preview-icon {
+            width: 72px;
+            height: 72px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐔 FarmTime Icon Generator - Poultry Farm</h1>
+        <p>Click the canvas to download your app icon</p>
+        
+        <canvas id="iconCanvas" width="1024" height="1024"></canvas>
+        
+        <div class="preview">
+            <div class="preview-item">
+                <canvas id="previewSmall" class="preview-icon" width="72" height="72"></canvas>
+                <p>72x72</p>
+            </div>
+            <div class="preview-item">
+                <canvas id="previewMedium" class="preview-icon" width="72" height="72"></canvas>
+                <p>144x144</p>
+            </div>
+        </div>
+        
+        <button onclick="downloadIcon()">📥 Download Icon (1024x1024)</button>
+        <button onclick="regenerateIcon()">🔄 Regenerate</button>
+        
+        <div class="instructions">
+            <h3>📋 Next Steps:</h3>
+            <ol>
+                <li>Click "Download Icon" button above</li>
+                <li>Save the file as <code>icon.png</code></li>
+                <li>Move it to: <code>/Users/hiteshrajbhotra/Documents/Production/FarmTime/mobile/assets/icon.png</code></li>
+                <li>Run: <code>eas build --platform android --profile production</code></li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function drawIcon(canvas, size = 1024) {
+            const ctx = canvas.getContext('2d');
+            
+            // Set canvas size
+            canvas.width = size;
+            canvas.height = size;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, size, size);
+            
+            // Draw green circle background
+            ctx.fillStyle = '#4CAF50';
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Add subtle gradient for depth
+            const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.1)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0.1)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/2, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw text
+            ctx.fillStyle = '#FFFFFF';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Farm text (top)
+            ctx.font = `bold ${size * 0.18}px Arial, sans-serif`;
+            ctx.fillText('Farm', size/2, size/2 - size * 0.08);
+            
+            // Time text (bottom)
+            ctx.font = `bold ${size * 0.18}px Arial, sans-serif`;
+            ctx.fillText('Time', size/2, size/2 + size * 0.08);
+            
+            // Add chicken emoji for poultry farm
+            ctx.font = `${size * 0.15}px Arial`;
+            ctx.fillText('🐔', size/2, size/2 - size * 0.25);
+        }
+        
+        function regenerateIcon() {
+            drawIcon(document.getElementById('iconCanvas'));
+            drawIcon(document.getElementById('previewSmall'), 72);
+            drawIcon(document.getElementById('previewMedium'), 144);
+        }
+        
+        function downloadIcon() {
+            const canvas = document.getElementById('iconCanvas');
+            const link = document.createElement('a');
+            link.download = 'icon.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            
+            alert('✅ Icon downloaded!\n\nNext steps:\n1. Save as icon.png\n2. Move to mobile/assets/ folder\n3. Build new APK');
+        }
+        
+        // Initialize
+        window.onload = function() {
+            regenerateIcon();
+            
+            // Make canvas clickable to download
+            document.getElementById('iconCanvas').onclick = downloadIcon;
+        };
+    </script>
+</body>
+</html>
