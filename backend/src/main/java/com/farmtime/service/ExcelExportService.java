@@ -98,10 +98,12 @@ public class ExcelExportService {
             
             // Create title row
             Row titleRow = sheet.createRow(0);
+            titleRow.setHeightInPoints(30); // Increase row height for title
             Cell titleCell = titleRow.createCell(0);
             titleCell.setCellValue("Attendance Report");
             CellStyle titleStyle = createTitleStyle(workbook);
             titleStyle.setAlignment(HorizontalAlignment.CENTER);
+            titleStyle.setVerticalAlignment(VerticalAlignment.CENTER);
             titleCell.setCellStyle(titleStyle);
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 6));
             
@@ -185,10 +187,12 @@ public class ExcelExportService {
             
             // Create title row
             Row titleRow = sheet.createRow(0);
+            titleRow.setHeightInPoints(30); // Increase row height for title
             Cell titleCell = titleRow.createCell(0);
             titleCell.setCellValue("Payment Report");
             CellStyle titleStyle = createTitleStyle(workbook);
             titleStyle.setAlignment(HorizontalAlignment.CENTER);
+            titleStyle.setVerticalAlignment(VerticalAlignment.CENTER);
             titleCell.setCellStyle(titleStyle);
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 6));
             
@@ -274,9 +278,13 @@ public class ExcelExportService {
             
             // Summary section title
             Row summaryTitleRow = sheet.createRow(rowNum++);
+            summaryTitleRow.setHeightInPoints(25); // Increase row height for summary title
             Cell summaryTitleCell = summaryTitleRow.createCell(0);
             summaryTitleCell.setCellValue("Employee-wise Payment Summary");
-            summaryTitleCell.setCellStyle(titleStyle);
+            CellStyle summaryTitleStyle = createTitleStyle(workbook);
+            summaryTitleStyle.setAlignment(HorizontalAlignment.CENTER);
+            summaryTitleStyle.setVerticalAlignment(VerticalAlignment.CENTER);
+            summaryTitleCell.setCellStyle(summaryTitleStyle);
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 0, 3));
             
             rowNum++; // Empty row
@@ -325,13 +333,14 @@ public class ExcelExportService {
             }
             
             // Set column widths
-            sheet.setColumnWidth(0, 1500);  // No. column - narrow
-            sheet.autoSizeColumn(1);  // Employee Name
-            sheet.setColumnWidth(2, 4500);  // Monthly Salary
-            sheet.setColumnWidth(3, 3500);  // Date
-            sheet.setColumnWidth(4, 3500);  // Amount
+            // Main table columns
+            sheet.setColumnWidth(0, 6000);  // Column 0: No. in main table, Employee Name in summary - make it wide
+            sheet.setColumnWidth(1, 6000);  // Employee Name in main table
+            sheet.setColumnWidth(2, 4500);  // Monthly Salary (both main and summary)
+            sheet.setColumnWidth(3, 4500);  // Date in main, Total Paid in summary
+            sheet.setColumnWidth(4, 4500);  // Amount in main, Remaining in summary (if summary had 4 cols)
             sheet.setColumnWidth(5, 3500);  // Payment Type
-            sheet.autoSizeColumn(6);  // Description
+            sheet.setColumnWidth(6, 8000);  // Description - wider
             
             workbook.write(out);
             return out.toByteArray();
