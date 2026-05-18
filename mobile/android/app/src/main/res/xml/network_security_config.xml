@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow cleartext (HTTP) traffic for all domains -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    
+    <!-- Specific configuration for your EC2 backend -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">13.127.116.232</domain>
+    </domain-config>
+</network-security-config>
