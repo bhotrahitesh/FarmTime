@@ -55,14 +55,26 @@ export default function ReportsScreen() {
   };
 
   const downloadReport = async (reportType) => {
+    // Validate date range
     if (endDate < startDate) {
       Alert.alert('Error', 'End date must be after start date');
       return;
     }
 
+    // Validate employee selection
+    if (selectedEmployees.length === 0) {
+      Alert.alert(
+        'No Employee Selected',
+        'Please select at least one employee to generate the report.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     setLoading(true);
     try {
-      const employeeIds = selectedEmployees.length > 0 ? selectedEmployees : [];
+      // Send selected employee IDs to API
+      const employeeIds = selectedEmployees;
       const formattedStartDate = startDate.toISOString().split('T')[0];
       const formattedEndDate = endDate.toISOString().split('T')[0];
 
@@ -171,9 +183,15 @@ export default function ReportsScreen() {
               </Text>
             </View>
 
-            {selectedEmployees.length === 0 && !selectAll && (
-              <Chip icon="information" style={styles.infoChip}>
-                No selection = All employees
+            {selectedEmployees.length === 0 && (
+              <Chip icon="alert" style={styles.warningChip}>
+                Please select at least one employee
+              </Chip>
+            )}
+
+            {selectedEmployees.length > 0 && (
+              <Chip icon="check" style={styles.successChip}>
+                {selectedEmployees.length} employee{selectedEmployees.length > 1 ? 's' : ''} selected
               </Chip>
             )}
 
@@ -247,9 +265,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  infoChip: {
+  warningChip: {
     marginBottom: 12,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: '#FFF3E0',
+  },
+  successChip: {
+    marginBottom: 12,
+    backgroundColor: '#E8F5E9',
   },
   employeeList: {
     marginTop: 8,

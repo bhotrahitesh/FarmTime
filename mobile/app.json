@@ -28,6 +28,9 @@
     "owner": "hiteshrajbhotra",
     "runtimeVersion": "1.0.1",
     "updates": {
+      "enabled": true,
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0,
       "url": "https://u.expo.dev/0c2e15f5-f87f-4d55-bb6e-442a7c6b068b"
     }
   }

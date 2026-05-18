@@ -202,6 +202,9 @@ export const exportAttendanceReport = (employeeIds, startDate, endDate) => {
   return api.get('/reports/attendance/export', {
     params,
     responseType: 'blob',
+    paramsSerializer: {
+      indexes: null, // This ensures array params are sent as: employeeIds=1&employeeIds=2
+    },
   });
 };
 
@@ -213,6 +216,9 @@ export const exportPaymentReport = (employeeIds, startDate, endDate) => {
   return api.get('/reports/payments/export', {
     params,
     responseType: 'blob',
+    paramsSerializer: {
+      indexes: null, // This ensures array params are sent as: employeeIds=1&employeeIds=2
+    },
   });
 };
 

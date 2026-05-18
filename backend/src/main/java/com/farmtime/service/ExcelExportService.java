@@ -190,7 +190,7 @@ public class ExcelExportService {
             CellStyle titleStyle = createTitleStyle(workbook);
             titleStyle.setAlignment(HorizontalAlignment.CENTER);
             titleCell.setCellStyle(titleStyle);
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 7));
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, 6));
             
             // Create date range row
             Row dateRangeRow = sheet.createRow(1);
@@ -199,22 +199,22 @@ public class ExcelExportService {
             CellStyle dateRangeStyle = workbook.createCellStyle();
             dateRangeStyle.setAlignment(HorizontalAlignment.CENTER);
             dateRangeCell.setCellStyle(dateRangeStyle);
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(1, 1, 0, 7));
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(1, 1, 0, 6));
             
-            // Create header row
+            // Create header row (removed Remaining column)
             Row headerRow = sheet.createRow(3);
-            String[] headers = {"No.", "Employee Name", "Monthly Salary (₹)", "Date", "Amount (₹)", "Payment Type", "Remaining (₹)", "Description"};
+            String[] headers = {"No.", "Employee Name", "Monthly Salary (₹)", "Date", "Amount (₹)", "Payment Type", "Description"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
                 cell.setCellStyle(headerStyle);
             }
             
-            // Fill data rows
+            // Fill data rows and track employee-wise totals
             int rowNum = 4;
             int serialNo = 1;
             double totalAmount = 0.0;
-            String currentEmployee = null;
+            java.util.Map<String, EmployeePaymentSummary> employeeSummaries = new java.util.LinkedHashMap<>();
             
             for (Payment payment : paymentList) {
                 Row row = sheet.createRow(rowNum++);
@@ -224,34 +224,14 @@ public class ExcelExportService {
                 serialCell.setCellStyle(centerStyle);
                 
                 String employeeName = payment.getEmployee().getName();
+                Long employeeId = payment.getEmployee().getId();
                 row.createCell(1).setCellValue(employeeName);
                 
-                // Add monthly salary and calculate remaining for current cycle
+                // Add monthly salary
                 Cell monthlySalaryCell = row.createCell(2);
-                Cell remainingCell = row.createCell(6);
-                
-                try {
-                    SalaryCycleSummaryDTO cycleSummary = salaryCycleService.getSalaryCycleSummary(
-                        payment.getEmployee().getId(), 
-                        payment.getPaymentDate()
-                    );
-                    monthlySalaryCell.setCellValue(cycleSummary.getMonthlySalary());
-                    monthlySalaryCell.setCellStyle(currencyStyle);
-                    
-                    remainingCell.setCellValue(cycleSummary.getRemainingAmount());
-                    CellStyle remainingStyle = createCurrencyStyle(workbook);
-                    if (cycleSummary.getRemainingAmount() < 0) {
-                        Font redFont = workbook.createFont();
-                        redFont.setColor(IndexedColors.RED.getIndex());
-                        remainingStyle.setFont(redFont);
-                    }
-                    remainingCell.setCellStyle(remainingStyle);
-                } catch (Exception e) {
-                    monthlySalaryCell.setCellValue(payment.getEmployee().getMonthlySalary());
-                    monthlySalaryCell.setCellStyle(currencyStyle);
-                    remainingCell.setCellValue(0.0);
-                    remainingCell.setCellStyle(currencyStyle);
-                }
+                double monthlySalary = payment.getEmployee().getMonthlySalary();
+                monthlySalaryCell.setCellValue(monthlySalary);
+                monthlySalaryCell.setCellStyle(currencyStyle);
                 
                 Cell dateCell = row.createCell(3);
                 dateCell.setCellValue(payment.getPaymentDate().format(DATE_FORMATTER));
@@ -265,9 +245,14 @@ public class ExcelExportService {
                 typeCell.setCellValue(payment.getPaymentType().toString().replace("_", " "));
                 typeCell.setCellStyle(centerStyle);
                 
-                row.createCell(7).setCellValue(payment.getDescription() != null ? payment.getDescription() : "");
+                row.createCell(6).setCellValue(payment.getDescription() != null ? payment.getDescription() : "");
                 
                 totalAmount += payment.getAmount();
+                
+                // Track employee-wise summary
+                String empKey = employeeId + "_" + employeeName;
+                employeeSummaries.putIfAbsent(empKey, new EmployeePaymentSummary(employeeName, monthlySalary));
+                employeeSummaries.get(empKey).addPayment(payment.getAmount());
             }
             
             // Add total row
@@ -284,6 +269,61 @@ public class ExcelExportService {
             totalStyle.setFont(boldFont);
             totalAmountCell.setCellStyle(totalStyle);
             
+            // Add employee-wise summary section
+            rowNum += 3; // Add some spacing
+            
+            // Summary section title
+            Row summaryTitleRow = sheet.createRow(rowNum++);
+            Cell summaryTitleCell = summaryTitleRow.createCell(0);
+            summaryTitleCell.setCellValue("Employee-wise Payment Summary");
+            summaryTitleCell.setCellStyle(titleStyle);
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 0, 3));
+            
+            rowNum++; // Empty row
+            
+            // Summary header
+            Row summaryHeaderRow = sheet.createRow(rowNum++);
+            String[] summaryHeaders = {"Employee Name", "Monthly Salary (₹)", "Total Paid (₹)", "Remaining (₹)"};
+            for (int i = 0; i < summaryHeaders.length; i++) {
+                Cell cell = summaryHeaderRow.createCell(i);
+                cell.setCellValue(summaryHeaders[i]);
+                cell.setCellStyle(headerStyle);
+            }
+            
+            // Summary data rows
+            for (EmployeePaymentSummary summary : employeeSummaries.values()) {
+                Row summaryRow = sheet.createRow(rowNum++);
+                
+                summaryRow.createCell(0).setCellValue(summary.getEmployeeName());
+                
+                Cell salaryCell = summaryRow.createCell(1);
+                salaryCell.setCellValue(summary.getMonthlySalary());
+                salaryCell.setCellStyle(currencyStyle);
+                
+                Cell paidCell = summaryRow.createCell(2);
+                paidCell.setCellValue(summary.getTotalPaid());
+                paidCell.setCellStyle(currencyStyle);
+                
+                Cell remainingCell = summaryRow.createCell(3);
+                double remaining = summary.getMonthlySalary() - summary.getTotalPaid();
+                remainingCell.setCellValue(remaining);
+                
+                // Color code remaining amount
+                CellStyle remainingStyle = createCurrencyStyle(workbook);
+                if (remaining < 0) {
+                    Font redFont = workbook.createFont();
+                    redFont.setColor(IndexedColors.RED.getIndex());
+                    redFont.setBold(true);
+                    remainingStyle.setFont(redFont);
+                } else if (remaining > 0) {
+                    Font greenFont = workbook.createFont();
+                    greenFont.setColor(IndexedColors.DARK_GREEN.getIndex());
+                    greenFont.setBold(true);
+                    remainingStyle.setFont(greenFont);
+                }
+                remainingCell.setCellStyle(remainingStyle);
+            }
+            
             // Set column widths
             sheet.setColumnWidth(0, 1500);  // No. column - narrow
             sheet.autoSizeColumn(1);  // Employee Name
@@ -291,11 +331,39 @@ public class ExcelExportService {
             sheet.setColumnWidth(3, 3500);  // Date
             sheet.setColumnWidth(4, 3500);  // Amount
             sheet.setColumnWidth(5, 3500);  // Payment Type
-            sheet.setColumnWidth(6, 3500);  // Remaining
-            sheet.autoSizeColumn(7);  // Description
+            sheet.autoSizeColumn(6);  // Description
             
             workbook.write(out);
             return out.toByteArray();
+        }
+    }
+    
+    // Helper class for employee payment summary
+    private static class EmployeePaymentSummary {
+        private final String employeeName;
+        private final double monthlySalary;
+        private double totalPaid;
+        
+        public EmployeePaymentSummary(String employeeName, double monthlySalary) {
+            this.employeeName = employeeName;
+            this.monthlySalary = monthlySalary;
+            this.totalPaid = 0.0;
+        }
+        
+        public void addPayment(double amount) {
+            this.totalPaid += amount;
+        }
+        
+        public String getEmployeeName() {
+            return employeeName;
+        }
+        
+        public double getMonthlySalary() {
+            return monthlySalary;
+        }
+        
+        public double getTotalPaid() {
+            return totalPaid;
         }
     }
     
