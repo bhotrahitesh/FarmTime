@@ -1,6 +1,7 @@
 package com.farmtime.service;
 
 import com.farmtime.dto.PaymentDTO;
+import com.farmtime.exception.ValidationException;
 import com.farmtime.model.Employee;
 import com.farmtime.model.Payment;
 import com.farmtime.model.Payment.PaymentType;
@@ -139,7 +140,7 @@ public class PaymentService {
         
         // Check if it exceeds monthly salary
         if (totalPaymentsAfter > employee.getMonthlySalary()) {
-            throw new RuntimeException(
+            throw new ValidationException(
                 "You cannot pay more than the employee salary for the month. " +
                 String.format(
                     "Employee monthly salary: ₹%.2f, Total payments in cycle (%s to %s) would be: ₹%.2f",
