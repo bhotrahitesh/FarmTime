@@ -306,18 +306,22 @@ public class ExcelExportService {
                 // Employee-wise summary for this cycle
                 rowNum++; // Empty row
                 Row summaryTitleRow = sheet.createRow(rowNum++);
+                summaryTitleRow.setHeightInPoints(30); // Increase height for better visibility
                 Cell summaryTitleCell = summaryTitleRow.createCell(0);
                 summaryTitleCell.setCellValue("Employee Summary for this Cycle");
                 CellStyle summaryTitleStyle = createTitleStyle(workbook);
                 summaryTitleCell.setCellStyle(summaryTitleStyle);
-                sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 0, 6));
+                sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 0, 7));
                 
                 Row summaryHeaderRow = sheet.createRow(rowNum++);
+                summaryHeaderRow.setHeightInPoints(25); // Increase height for header
                 String[] summaryHeaders = {"Employee", "Monthly Salary (₹)", "Salary Paid (₹)", "Advance (₹)", "Bonus (₹)", "Deduction (₹)", "Net Payable (₹)", "Remaining (₹)"};
                 for (int i = 0; i < summaryHeaders.length; i++) {
                     Cell cell = summaryHeaderRow.createCell(i);
                     cell.setCellValue(summaryHeaders[i]);
                     cell.setCellStyle(headerStyle);
+                    // Auto-size columns for better readability
+                    sheet.setColumnWidth(i, 4500);
                 }
                 
                 for (EmployeeCycleSummary summary : employeeSummaries.values()) {
@@ -527,13 +531,16 @@ public class ExcelExportService {
         font.setBold(true);
         font.setColor(IndexedColors.WHITE.getIndex());
         style.setFont(font);
-        style.setFillForegroundColor(IndexedColors.DARK_GREEN.getIndex());
+        // Use a pleasant sea green/teal color - easy on the eyes
+        style.setFillForegroundColor(IndexedColors.SEA_GREEN.getIndex());
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         style.setBorderBottom(BorderStyle.THIN);
         style.setBorderTop(BorderStyle.THIN);
         style.setBorderLeft(BorderStyle.THIN);
         style.setBorderRight(BorderStyle.THIN);
         style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setWrapText(true);
         return style;
     }
     
@@ -565,10 +572,12 @@ public class ExcelExportService {
         font.setFontHeightInPoints((short) 14);
         font.setColor(IndexedColors.WHITE.getIndex());
         style.setFont(font);
-        style.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
+        // Use a pleasant teal/green color instead of dark blue
+        style.setFillForegroundColor(IndexedColors.TEAL.getIndex());
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         style.setAlignment(HorizontalAlignment.CENTER);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setWrapText(true);
         return style;
     }
 }
