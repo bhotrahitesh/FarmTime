@@ -23,56 +23,85 @@ public class DataCleanupService {
     private final PaymentRepository paymentRepository;
     private final TimeOffRepository timeOffRepository;
     
-    @Value("${data.retention.minutes:15}")
-    private int retentionMinutes;
+    @Value("${data.retention.months:2}")
+    private int retentionMonths;
     
     @Value("${salary.payday:10}")
     private Integer salaryPayday;
     
     /**
-     * Runs at configured interval to delete records older than configured retention period
-     * Schedule can be configured via data.cleanup.cron property
+     * Runs ONE DAY AFTER PAYDAY to delete records older than configured retention period
+     * Schedule: Daily at 2:00 AM (configured via data.cleanup.cron property)
      * 
      * IMPORTANT: 
+     * - Runs ONLY one day after payday (e.g., if payday is 10th, runs on 11th)
+     * - Retains data for configured months (default: 2 months)
      * - Payment cleanup respects salary cycle boundaries to prevent data corruption
-     * - Payment cleanup NEVER runs on payday to avoid interfering with salary processing
+     * - Deletes attendance, payment, and time-off records older than retention period
      */
-    @Scheduled(cron = "${data.cleanup.cron:0 */15 * * * ?}")
+    @Scheduled(cron = "${data.cleanup.cron:0 0 2 * * ?}")
     @Transactional
     public void cleanupOldData() {
-        log.info("Starting scheduled data cleanup (retention period: {} minutes)...", retentionMinutes);
-        
-        LocalDateTime cutoffDateTime = LocalDateTime.now().minusMinutes(retentionMinutes);
-        LocalDate cutoffDate = cutoffDateTime.toLocalDate();
         LocalDate today = LocalDate.now();
+        
+        // CRITICAL: Only run cleanup ONE DAY AFTER PAYDAY
+        if (!isOneDayAfterPayday(today)) {
+            log.info("Skipping data cleanup - Today is not one day after payday. Cleanup runs only on day after payday.");
+            return;
+        }
+        
+        log.info("Starting scheduled data cleanup (retention period: {} months)...", retentionMonths);
+        
+        // Calculate cutoff date: 2 months ago from today
+        LocalDate cutoffDate = today.minusMonths(retentionMonths);
         
         try {
             // Delete old attendance records (simple date-based cleanup)
             attendanceRepository.deleteOldRecords(cutoffDate);
             log.info("Deleted attendance records older than {}", cutoffDate);
             
-            // CRITICAL SAFETY CHECK: Never delete payment data on payday
-            if (isPayday(today)) {
-                log.warn("SKIPPING payment cleanup - Today is PAYDAY ({}). Payment data will not be deleted on payday for safety.", today);
+            // Delete old payment records (CYCLE-AWARE cleanup to prevent partial cycle deletion)
+            LocalDate paymentCutoffDate = calculateSafeCycleEndDateForCleanup(cutoffDate);
+            if (paymentCutoffDate != null) {
+                paymentRepository.deleteOldRecords(paymentCutoffDate);
+                log.info("Deleted payment records older than {} (cycle-safe date)", paymentCutoffDate);
             } else {
-                // Delete old payment records (CYCLE-AWARE cleanup to prevent partial cycle deletion)
-                LocalDate paymentCutoffDate = calculateSafeCycleEndDateForCleanup(cutoffDate);
-                if (paymentCutoffDate != null) {
-                    paymentRepository.deleteOldRecords(paymentCutoffDate);
-                    log.info("Deleted payment records older than {} (cycle-safe date)", paymentCutoffDate);
-                } else {
-                    log.info("No complete salary cycles old enough for payment cleanup");
-                }
+                log.info("No complete salary cycles old enough for payment cleanup");
             }
             
             // Delete old time off records (simple date-based cleanup)
             timeOffRepository.deleteOldRecords(cutoffDate);
-            log.info("Deleted time off records older than {}", cutoffDate);
+            log.info("Deleted time-off records older than {}", cutoffDate);
             
-            log.info("Data cleanup completed successfully");
+            log.info("Data cleanup completed successfully - Retention: {} months, Cutoff: {}", retentionMonths, cutoffDate);
         } catch (Exception e) {
             log.error("Error during data cleanup", e);
         }
+    }
+    
+    /**
+     * Check if today is ONE DAY AFTER payday.
+     * Example: If payday is 10th, this returns true on 11th.
+     * 
+     * @param date The date to check
+     * @return true if today is one day after payday, false otherwise
+     */
+    private boolean isOneDayAfterPayday(LocalDate date) {
+        int today = date.getDayOfMonth();
+        int monthLength = YearMonth.of(date.getYear(), date.getMonth()).lengthOfMonth();
+        
+        // Handle edge case: if payday is 31 but month has fewer days
+        int effectivePayday = Math.min(salaryPayday, monthLength);
+        
+        // Check if today is one day after payday
+        int oneDayAfterPayday = effectivePayday + 1;
+        
+        // Handle month-end edge case: if payday is last day of month, next day is 1st
+        if (effectivePayday == monthLength) {
+            return today == 1; // First day of next month
+        }
+        
+        return today == oneDayAfterPayday;
     }
     
     /**
