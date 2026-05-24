@@ -6,7 +6,7 @@ import { getActiveEmployees, createPayment, getCurrentSalaryCycleSummary } from 
 import { formatDateForDisplay } from '../utils/dateFormatter';
 import { getErrorMessage } from '../utils/errorHandler';
 
-const PAYMENT_TYPES = ['SALARY', 'ADVANCE'];
+const PAYMENT_TYPES = ['SALARY', 'ADVANCE', 'DEDUCTION'];
 
 export default function AddPaymentScreen({ navigation }) {
   const [employees, setEmployees] = useState([]);

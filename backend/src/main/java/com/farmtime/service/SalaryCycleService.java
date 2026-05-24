@@ -79,18 +79,26 @@ public class SalaryCycleService {
         LocalDate cycleStart;
         LocalDate cycleEnd;
         
-        if (day >= salaryPayday) {
-            cycleStart = LocalDate.of(year, month, salaryPayday);
+        // Payday is the END of the cycle, next day starts new cycle
+        // Example: If payday = 10, cycle is 11th of prev month to 10th of current month
+        if (day > salaryPayday) {
+            // We are after payday, so current cycle started day after last month's payday
+            YearMonth currentMonth = YearMonth.of(year, month);
+            int currentMonthPayday = Math.min(salaryPayday, currentMonth.lengthOfMonth());
+            cycleStart = LocalDate.of(year, month, currentMonthPayday).plusDays(1);
             
-            YearMonth nextMonth = YearMonth.of(year, month).plusMonths(1);
+            YearMonth nextMonth = currentMonth.plusMonths(1);
             int nextMonthPayday = Math.min(salaryPayday, nextMonth.lengthOfMonth());
-            cycleEnd = LocalDate.of(nextMonth.getYear(), nextMonth.getMonthValue(), nextMonthPayday).minusDays(1);
+            cycleEnd = LocalDate.of(nextMonth.getYear(), nextMonth.getMonthValue(), nextMonthPayday);
         } else {
+            // We are before or on payday, so current cycle started day after prev month's payday
             YearMonth prevMonth = YearMonth.of(year, month).minusMonths(1);
             int prevMonthPayday = Math.min(salaryPayday, prevMonth.lengthOfMonth());
-            cycleStart = LocalDate.of(prevMonth.getYear(), prevMonth.getMonthValue(), prevMonthPayday);
+            cycleStart = LocalDate.of(prevMonth.getYear(), prevMonth.getMonthValue(), prevMonthPayday).plusDays(1);
             
-            cycleEnd = LocalDate.of(year, month, salaryPayday).minusDays(1);
+            YearMonth currentMonth = YearMonth.of(year, month);
+            int currentMonthPayday = Math.min(salaryPayday, currentMonth.lengthOfMonth());
+            cycleEnd = LocalDate.of(year, month, currentMonthPayday);
         }
         
         return new LocalDate[]{cycleStart, cycleEnd};

@@ -16,8 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 @RequiredArgsConstructor
@@ -27,6 +30,9 @@ public class ExcelExportService {
     private final PaymentRepository paymentRepository;
     private final EmployeeRepository employeeRepository;
     private final SalaryCycleService salaryCycleService;
+    
+    @Value("${salary.payday:10}")
+    private Integer globalSalaryPayday;
     
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy");
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
@@ -184,12 +190,13 @@ public class ExcelExportService {
             CellStyle currencyStyle = createCurrencyStyle(workbook);
             CellStyle centerStyle = workbook.createCellStyle();
             centerStyle.setAlignment(HorizontalAlignment.CENTER);
+            CellStyle cycleHeaderStyle = createCycleHeaderStyle(workbook);
             
             // Create title row
             Row titleRow = sheet.createRow(0);
-            titleRow.setHeightInPoints(30); // Increase row height for title
+            titleRow.setHeightInPoints(30);
             Cell titleCell = titleRow.createCell(0);
-            titleCell.setCellValue("Payment Report");
+            titleCell.setCellValue("Payment Report - Grouped by Salary Cycles");
             CellStyle titleStyle = createTitleStyle(workbook);
             titleStyle.setAlignment(HorizontalAlignment.CENTER);
             titleStyle.setVerticalAlignment(VerticalAlignment.CENTER);
@@ -205,149 +212,287 @@ public class ExcelExportService {
             dateRangeCell.setCellStyle(dateRangeStyle);
             sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(1, 1, 0, 6));
             
-            // Create header row (removed Remaining column)
-            Row headerRow = sheet.createRow(3);
-            String[] headers = {"No.", "Employee Name", "Monthly Salary (₹)", "Date", "Amount (₹)", "Payment Type", "Description"};
-            for (int i = 0; i < headers.length; i++) {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(headers[i]);
-                cell.setCellStyle(headerStyle);
-            }
+            int rowNum = 3;
             
-            // Fill data rows and track employee-wise totals
-            int rowNum = 4;
-            int serialNo = 1;
-            double totalAmount = 0.0;
-            java.util.Map<String, EmployeePaymentSummary> employeeSummaries = new java.util.LinkedHashMap<>();
+            // Group payments by salary cycles
+            Map<String, List<Payment>> cycleGroups = groupPaymentsBySalaryCycle(paymentList, startDate, endDate);
             
-            for (Payment payment : paymentList) {
-                Row row = sheet.createRow(rowNum++);
-                
-                Cell serialCell = row.createCell(0);
-                serialCell.setCellValue(serialNo++);
-                serialCell.setCellStyle(centerStyle);
-                
-                String employeeName = payment.getEmployee().getName();
-                Long employeeId = payment.getEmployee().getId();
-                row.createCell(1).setCellValue(employeeName);
-                
-                // Add monthly salary
-                Cell monthlySalaryCell = row.createCell(2);
-                double monthlySalary = payment.getEmployee().getMonthlySalary();
-                monthlySalaryCell.setCellValue(monthlySalary);
-                monthlySalaryCell.setCellStyle(currencyStyle);
-                
-                Cell dateCell = row.createCell(3);
-                dateCell.setCellValue(payment.getPaymentDate().format(DATE_FORMATTER));
-                dateCell.setCellStyle(centerStyle);
-                
-                Cell amountCell = row.createCell(4);
-                amountCell.setCellValue(payment.getAmount());
-                amountCell.setCellStyle(currencyStyle);
-                
-                Cell typeCell = row.createCell(5);
-                typeCell.setCellValue(payment.getPaymentType().toString().replace("_", " "));
-                typeCell.setCellStyle(centerStyle);
-                
-                row.createCell(6).setCellValue(payment.getDescription() != null ? payment.getDescription() : "");
-                
-                totalAmount += payment.getAmount();
-                
-                // Track employee-wise summary
-                String empKey = employeeId + "_" + employeeName;
-                employeeSummaries.putIfAbsent(empKey, new EmployeePaymentSummary(employeeName, monthlySalary));
-                employeeSummaries.get(empKey).addPayment(payment.getAmount());
-            }
+            // Sort cycle keys chronologically
+            List<String> sortedCycleKeys = new ArrayList<>(cycleGroups.keySet());
+            Collections.sort(sortedCycleKeys);
             
-            // Add total row
-            Row totalRow = sheet.createRow(rowNum + 1);
-            Cell totalLabelCell = totalRow.createCell(3);
-            totalLabelCell.setCellValue("Total:");
-            totalLabelCell.setCellStyle(headerStyle);
+            int globalSerialNo = 1;
             
-            Cell totalAmountCell = totalRow.createCell(4);
-            totalAmountCell.setCellValue(totalAmount);
-            CellStyle totalStyle = createCurrencyStyle(workbook);
-            Font boldFont = workbook.createFont();
-            boldFont.setBold(true);
-            totalStyle.setFont(boldFont);
-            totalAmountCell.setCellStyle(totalStyle);
-            
-            // Add employee-wise summary section
-            rowNum += 3; // Add some spacing
-            
-            // Summary section title
-            Row summaryTitleRow = sheet.createRow(rowNum++);
-            summaryTitleRow.setHeightInPoints(25); // Increase row height for summary title
-            Cell summaryTitleCell = summaryTitleRow.createCell(0);
-            summaryTitleCell.setCellValue("Employee-wise Payment Summary");
-            CellStyle summaryTitleStyle = createTitleStyle(workbook);
-            summaryTitleStyle.setAlignment(HorizontalAlignment.CENTER);
-            summaryTitleStyle.setVerticalAlignment(VerticalAlignment.CENTER);
-            summaryTitleCell.setCellStyle(summaryTitleStyle);
-            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 0, 3));
-            
-            rowNum++; // Empty row
-            
-            // Summary header
-            Row summaryHeaderRow = sheet.createRow(rowNum++);
-            String[] summaryHeaders = {"Employee Name", "Monthly Salary (₹)", "Total Paid (₹)", "Remaining (₹)"};
-            for (int i = 0; i < summaryHeaders.length; i++) {
-                Cell cell = summaryHeaderRow.createCell(i);
-                cell.setCellValue(summaryHeaders[i]);
-                cell.setCellStyle(headerStyle);
-            }
-            
-            // Summary data rows
-            for (EmployeePaymentSummary summary : employeeSummaries.values()) {
-                Row summaryRow = sheet.createRow(rowNum++);
+            // Process each salary cycle
+            for (String cycleKey : sortedCycleKeys) {
+                List<Payment> cyclePayments = cycleGroups.get(cycleKey);
+                String[] cycleDates = cycleKey.split("_");
+                LocalDate cycleStart = LocalDate.parse(cycleDates[0]);
+                LocalDate cycleEnd = LocalDate.parse(cycleDates[1]);
                 
-                summaryRow.createCell(0).setCellValue(summary.getEmployeeName());
+                // Salary Cycle Header
+                Row cycleHeaderRow = sheet.createRow(rowNum++);
+                cycleHeaderRow.setHeightInPoints(25);
+                Cell cycleHeaderCell = cycleHeaderRow.createCell(0);
+                cycleHeaderCell.setCellValue("Salary Cycle: " + cycleStart.format(DATE_FORMATTER) + " to " + cycleEnd.format(DATE_FORMATTER));
+                cycleHeaderCell.setCellStyle(cycleHeaderStyle);
+                sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 0, 6));
                 
-                Cell salaryCell = summaryRow.createCell(1);
-                salaryCell.setCellValue(summary.getMonthlySalary());
-                salaryCell.setCellStyle(currencyStyle);
-                
-                Cell paidCell = summaryRow.createCell(2);
-                paidCell.setCellValue(summary.getTotalPaid());
-                paidCell.setCellStyle(currencyStyle);
-                
-                Cell remainingCell = summaryRow.createCell(3);
-                double remaining = summary.getMonthlySalary() - summary.getTotalPaid();
-                remainingCell.setCellValue(remaining);
-                
-                // Color code remaining amount
-                CellStyle remainingStyle = createCurrencyStyle(workbook);
-                if (remaining < 0) {
-                    Font redFont = workbook.createFont();
-                    redFont.setColor(IndexedColors.RED.getIndex());
-                    redFont.setBold(true);
-                    remainingStyle.setFont(redFont);
-                } else if (remaining > 0) {
-                    Font greenFont = workbook.createFont();
-                    greenFont.setColor(IndexedColors.DARK_GREEN.getIndex());
-                    greenFont.setBold(true);
-                    remainingStyle.setFont(greenFont);
+                // Column headers for this cycle
+                Row headerRow = sheet.createRow(rowNum++);
+                String[] headers = {"No.", "Employee Name", "Monthly Salary (₹)", "Date", "Amount (₹)", "Payment Type", "Description"};
+                for (int i = 0; i < headers.length; i++) {
+                    Cell cell = headerRow.createCell(i);
+                    cell.setCellValue(headers[i]);
+                    cell.setCellStyle(headerStyle);
                 }
-                remainingCell.setCellStyle(remainingStyle);
+                
+                // Payment data for this cycle
+                Map<String, EmployeeCycleSummary> employeeSummaries = new LinkedHashMap<>();
+                double cycleTotal = 0.0;
+                
+                for (Payment payment : cyclePayments) {
+                    Row row = sheet.createRow(rowNum++);
+                    
+                    Cell serialCell = row.createCell(0);
+                    serialCell.setCellValue(globalSerialNo++);
+                    serialCell.setCellStyle(centerStyle);
+                    
+                    String employeeName = payment.getEmployee().getName();
+                    Long employeeId = payment.getEmployee().getId();
+                    row.createCell(1).setCellValue(employeeName);
+                    
+                    Cell monthlySalaryCell = row.createCell(2);
+                    double monthlySalary = payment.getEmployee().getMonthlySalary();
+                    monthlySalaryCell.setCellValue(monthlySalary);
+                    monthlySalaryCell.setCellStyle(currencyStyle);
+                    
+                    Cell dateCell = row.createCell(3);
+                    dateCell.setCellValue(payment.getPaymentDate().format(DATE_FORMATTER));
+                    dateCell.setCellStyle(centerStyle);
+                    
+                    Cell amountCell = row.createCell(4);
+                    amountCell.setCellValue(payment.getAmount());
+                    amountCell.setCellStyle(currencyStyle);
+                    
+                    Cell typeCell = row.createCell(5);
+                    typeCell.setCellValue(payment.getPaymentType().toString().replace("_", " "));
+                    typeCell.setCellStyle(centerStyle);
+                    
+                    row.createCell(6).setCellValue(payment.getDescription() != null ? payment.getDescription() : "");
+                    
+                    cycleTotal += payment.getAmount();
+                    
+                    // Track employee summary for this cycle
+                    String empKey = employeeId + "_" + employeeName;
+                    employeeSummaries.putIfAbsent(empKey, new EmployeeCycleSummary(employeeName, monthlySalary));
+                    employeeSummaries.get(empKey).addPayment(payment);
+                }
+                
+                // Cycle total row
+                Row cycleTotalRow = sheet.createRow(rowNum++);
+                Cell cycleTotalLabelCell = cycleTotalRow.createCell(3);
+                cycleTotalLabelCell.setCellValue("Cycle Total:");
+                cycleTotalLabelCell.setCellStyle(headerStyle);
+                
+                Cell cycleTotalAmountCell = cycleTotalRow.createCell(4);
+                cycleTotalAmountCell.setCellValue(cycleTotal);
+                CellStyle totalStyle = createCurrencyStyle(workbook);
+                Font boldFont = workbook.createFont();
+                boldFont.setBold(true);
+                totalStyle.setFont(boldFont);
+                cycleTotalAmountCell.setCellStyle(totalStyle);
+                
+                // Employee-wise summary for this cycle
+                rowNum++; // Empty row
+                Row summaryTitleRow = sheet.createRow(rowNum++);
+                Cell summaryTitleCell = summaryTitleRow.createCell(0);
+                summaryTitleCell.setCellValue("Employee Summary for this Cycle");
+                CellStyle summaryTitleStyle = createTitleStyle(workbook);
+                summaryTitleCell.setCellStyle(summaryTitleStyle);
+                sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 0, 6));
+                
+                Row summaryHeaderRow = sheet.createRow(rowNum++);
+                String[] summaryHeaders = {"Employee", "Monthly Salary (₹)", "Salary Paid (₹)", "Advance (₹)", "Bonus (₹)", "Deduction (₹)", "Net Payable (₹)", "Remaining (₹)"};
+                for (int i = 0; i < summaryHeaders.length; i++) {
+                    Cell cell = summaryHeaderRow.createCell(i);
+                    cell.setCellValue(summaryHeaders[i]);
+                    cell.setCellStyle(headerStyle);
+                }
+                
+                for (EmployeeCycleSummary summary : employeeSummaries.values()) {
+                    Row summaryRow = sheet.createRow(rowNum++);
+                    
+                    summaryRow.createCell(0).setCellValue(summary.getEmployeeName());
+                    
+                    Cell salaryCell = summaryRow.createCell(1);
+                    salaryCell.setCellValue(summary.getMonthlySalary());
+                    salaryCell.setCellStyle(currencyStyle);
+                    
+                    Cell salaryPaidCell = summaryRow.createCell(2);
+                    salaryPaidCell.setCellValue(summary.getSalaryPaid());
+                    salaryPaidCell.setCellStyle(currencyStyle);
+                    
+                    Cell advanceCell = summaryRow.createCell(3);
+                    advanceCell.setCellValue(summary.getAdvance());
+                    advanceCell.setCellStyle(currencyStyle);
+                    
+                    Cell bonusCell = summaryRow.createCell(4);
+                    bonusCell.setCellValue(summary.getBonus());
+                    bonusCell.setCellStyle(currencyStyle);
+                    
+                    Cell deductionCell = summaryRow.createCell(5);
+                    deductionCell.setCellValue(summary.getDeduction());
+                    deductionCell.setCellStyle(currencyStyle);
+                    
+                    double netPayable = summary.getMonthlySalary() + summary.getBonus() - summary.getDeduction();
+                    Cell netPayableCell = summaryRow.createCell(6);
+                    netPayableCell.setCellValue(netPayable);
+                    netPayableCell.setCellStyle(currencyStyle);
+                    
+                    double totalPaid = summary.getSalaryPaid() + summary.getAdvance() + summary.getBonus() - summary.getDeduction();
+                    double remaining = netPayable - totalPaid;
+                    
+                    Cell remainingCell = summaryRow.createCell(7);
+                    remainingCell.setCellValue(remaining);
+                    
+                    CellStyle remainingStyle = createCurrencyStyle(workbook);
+                    if (remaining < 0) {
+                        Font redFont = workbook.createFont();
+                        redFont.setColor(IndexedColors.RED.getIndex());
+                        redFont.setBold(true);
+                        remainingStyle.setFont(redFont);
+                    } else if (remaining > 0) {
+                        Font greenFont = workbook.createFont();
+                        greenFont.setColor(IndexedColors.DARK_GREEN.getIndex());
+                        greenFont.setBold(true);
+                        remainingStyle.setFont(greenFont);
+                    }
+                    remainingCell.setCellStyle(remainingStyle);
+                }
+                
+                rowNum += 2; // Add spacing between cycles
             }
             
             // Set column widths
-            // Main table columns
-            sheet.setColumnWidth(0, 6000);  // Column 0: No. in main table, Employee Name in summary - make it wide
-            sheet.setColumnWidth(1, 6000);  // Employee Name in main table
-            sheet.setColumnWidth(2, 4500);  // Monthly Salary (both main and summary)
-            sheet.setColumnWidth(3, 4500);  // Date in main, Total Paid in summary
-            sheet.setColumnWidth(4, 4500);  // Amount in main, Remaining in summary (if summary had 4 cols)
-            sheet.setColumnWidth(5, 3500);  // Payment Type
-            sheet.setColumnWidth(6, 8000);  // Description - wider
+            sheet.setColumnWidth(0, 2000);  // No.
+            sheet.setColumnWidth(1, 6000);  // Employee Name
+            sheet.setColumnWidth(2, 4500);  // Monthly Salary
+            sheet.setColumnWidth(3, 4000);  // Date/Salary Paid
+            sheet.setColumnWidth(4, 4000);  // Amount/Advance
+            sheet.setColumnWidth(5, 3500);  // Payment Type/Bonus
+            sheet.setColumnWidth(6, 4000);  // Description/Net Payable
+            sheet.setColumnWidth(7, 4000);  // Remaining
             
             workbook.write(out);
             return out.toByteArray();
         }
     }
     
-    // Helper class for employee payment summary
+    private Map<String, List<Payment>> groupPaymentsBySalaryCycle(List<Payment> payments, LocalDate startDate, LocalDate endDate) {
+        Map<String, List<Payment>> cycleGroups = new LinkedHashMap<>();
+        
+        for (Payment payment : payments) {
+            LocalDate[] cycleDates = calculateCycleDatesForPayment(payment.getPaymentDate());
+            String cycleKey = cycleDates[0].toString() + "_" + cycleDates[1].toString();
+            
+            cycleGroups.putIfAbsent(cycleKey, new ArrayList<>());
+            cycleGroups.get(cycleKey).add(payment);
+        }
+        
+        return cycleGroups;
+    }
+    
+    private LocalDate[] calculateCycleDatesForPayment(LocalDate paymentDate) {
+        int year = paymentDate.getYear();
+        int month = paymentDate.getMonth().getValue();
+        int day = paymentDate.getDayOfMonth();
+        
+        LocalDate cycleStart;
+        LocalDate cycleEnd;
+        
+        // Payday is the END of the cycle, next day starts new cycle
+        // Example: If payday = 10, cycle is 11th of prev month to 10th of current month
+        if (day > globalSalaryPayday) {
+            // We are after payday, so current cycle started day after last month's payday
+            YearMonth currentMonth = YearMonth.of(year, month);
+            int currentMonthPayday = Math.min(globalSalaryPayday, currentMonth.lengthOfMonth());
+            cycleStart = LocalDate.of(year, month, currentMonthPayday).plusDays(1);
+            
+            YearMonth nextMonth = currentMonth.plusMonths(1);
+            int nextMonthPayday = Math.min(globalSalaryPayday, nextMonth.lengthOfMonth());
+            cycleEnd = LocalDate.of(nextMonth.getYear(), nextMonth.getMonthValue(), nextMonthPayday);
+        } else {
+            // We are before or on payday, so current cycle started day after prev month's payday
+            YearMonth prevMonth = YearMonth.of(year, month).minusMonths(1);
+            int prevMonthPayday = Math.min(globalSalaryPayday, prevMonth.lengthOfMonth());
+            cycleStart = LocalDate.of(prevMonth.getYear(), prevMonth.getMonthValue(), prevMonthPayday).plusDays(1);
+            
+            YearMonth currentMonth = YearMonth.of(year, month);
+            int currentMonthPayday = Math.min(globalSalaryPayday, currentMonth.lengthOfMonth());
+            cycleEnd = LocalDate.of(year, month, currentMonthPayday);
+        }
+        
+        return new LocalDate[]{cycleStart, cycleEnd};
+    }
+    
+    // Helper class for employee cycle summary with payment type breakdown
+    private static class EmployeeCycleSummary {
+        private final String employeeName;
+        private final double monthlySalary;
+        private double salaryPaid = 0.0;
+        private double advance = 0.0;
+        private double bonus = 0.0;
+        private double deduction = 0.0;
+        
+        public EmployeeCycleSummary(String employeeName, double monthlySalary) {
+            this.employeeName = employeeName;
+            this.monthlySalary = monthlySalary;
+        }
+        
+        public void addPayment(Payment payment) {
+            switch (payment.getPaymentType()) {
+                case SALARY:
+                    salaryPaid += payment.getAmount();
+                    break;
+                case ADVANCE:
+                    advance += payment.getAmount();
+                    break;
+                case BONUS:
+                    bonus += payment.getAmount();
+                    break;
+                case DEDUCTION:
+                    deduction += payment.getAmount();
+                    break;
+            }
+        }
+        
+        public String getEmployeeName() {
+            return employeeName;
+        }
+        
+        public double getMonthlySalary() {
+            return monthlySalary;
+        }
+        
+        public double getSalaryPaid() {
+            return salaryPaid;
+        }
+        
+        public double getAdvance() {
+            return advance;
+        }
+        
+        public double getBonus() {
+            return bonus;
+        }
+        
+        public double getDeduction() {
+            return deduction;
+        }
+    }
+    
+    // Helper class for employee payment summary (legacy - kept for compatibility)
     private static class EmployeePaymentSummary {
         private final String employeeName;
         private final double monthlySalary;
@@ -410,6 +555,20 @@ public class ExcelExportService {
     private CellStyle createCurrencyStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
         style.setDataFormat(workbook.createDataFormat().getFormat("₹#,##0.00"));
+        return style;
+    }
+    
+    private CellStyle createCycleHeaderStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setBold(true);
+        font.setFontHeightInPoints((short) 14);
+        font.setColor(IndexedColors.WHITE.getIndex());
+        style.setFont(font);
+        style.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
         return style;
     }
 }

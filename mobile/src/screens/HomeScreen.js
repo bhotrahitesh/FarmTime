@@ -49,7 +49,7 @@ export default function HomeScreen({ navigation }) {
     },
     {
       title: 'Payments',
-      description: 'Manage salary and advances',
+      description: 'Manage salary, advances & deductions',
       icon: 'currency-inr',
       color: '#FF9800',
       onPress: () => navigation.navigate('Payments'),

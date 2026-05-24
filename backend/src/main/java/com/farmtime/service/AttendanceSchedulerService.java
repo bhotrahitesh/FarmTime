@@ -50,7 +50,8 @@ public class AttendanceSchedulerService {
                 Attendance attendance = new Attendance();
                 attendance.setEmployee(employee);
                 attendance.setAttendanceDate(today);
-                attendance.setCheckInTime(LocalTime.of(7, 0));
+                attendance.setCheckInTime(LocalTime.of(8, 0));
+                attendance.setCheckOutTime(LocalTime.of(23, 59));
                 attendance.setIsPresent(true);
                 attendance.setAttendanceStatus("PRESENT");
                 attendance.setNotes("Auto-marked by system");
@@ -87,7 +88,8 @@ public class AttendanceSchedulerService {
                 Attendance attendance = new Attendance();
                 attendance.setEmployee(employee);
                 attendance.setAttendanceDate(today);
-                attendance.setCheckInTime(LocalTime.of(7, 0));
+                attendance.setCheckInTime(LocalTime.of(8, 0));
+                attendance.setCheckOutTime(LocalTime.of(23, 59));
                 attendance.setIsPresent(true);
                 attendance.setAttendanceStatus("PRESENT");
                 attendance.setNotes("Auto-marked by system (manual trigger)");

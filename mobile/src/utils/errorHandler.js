@@ -24,7 +24,7 @@ export const getErrorMessage = (error, defaultMessage = 'An unexpected error occ
       case 400:
         return 'Invalid request. Please check your input.';
       case 401:
-        return 'Unauthorized. Please login again.';
+        return 'Your session has expired. Please login again.';
       case 403:
         return 'You do not have permission to perform this action.';
       case 404:

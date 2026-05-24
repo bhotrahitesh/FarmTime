@@ -51,8 +51,8 @@ Implemented user-friendly error handling across the entire FarmTime application 
 ✅ **Server Errors**
 - Message: `"Server error. Please try again later."`
 
-✅ **Unauthorized**
-- Message: `"Unauthorized. Please login again."`
+✅ **Unauthorized (Session Expired)**
+- Message: `"Your session has expired. Please login again."`
 
 ✅ **Forbidden**
 - Message: `"You do not have permission to perform this action."`

@@ -57,6 +57,8 @@ export default function PaymentsScreen({ navigation }) {
         return '#4CAF50';
       case 'ADVANCE':
         return '#FF9800';
+      case 'DEDUCTION':
+        return '#F44336';
       default:
         return '#9E9E9E';
     }
