@@ -48,6 +48,11 @@ public class TimeOffService {
         TimeOff timeOff = timeOffRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Time off record not found"));
         
+        // Prevent editing if the leave has already started (already used)
+        if (timeOff.getStartDate().isBefore(LocalDate.now())) {
+            throw new ValidationException("Cannot edit time off record that has already started. The leave period has already begun.");
+        }
+        
         long overlaps = timeOffRepository.countOverlappingTimeOffExcluding(
             timeOff.getEmployee().getId(), dto.getStartDate(), dto.getEndDate(), id);
         if (overlaps > 0) {
@@ -82,6 +87,14 @@ public class TimeOffService {
     
     @Transactional
     public void deleteTimeOff(Long id) {
+        TimeOff timeOff = timeOffRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Time off record not found"));
+        
+        // Prevent deleting if the leave has already started (already used)
+        if (timeOff.getStartDate().isBefore(LocalDate.now())) {
+            throw new ValidationException("Cannot delete time off record that has already started. The leave period has already begun.");
+        }
+        
         timeOffRepository.deleteById(id);
     }
     

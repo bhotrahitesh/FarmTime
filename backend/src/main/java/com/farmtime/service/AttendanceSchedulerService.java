@@ -4,6 +4,7 @@ import com.farmtime.model.Attendance;
 import com.farmtime.model.Employee;
 import com.farmtime.repository.AttendanceRepository;
 import com.farmtime.repository.EmployeeRepository;
+import com.farmtime.repository.TimeOffRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +23,7 @@ public class AttendanceSchedulerService {
     
     private final AttendanceRepository attendanceRepository;
     private final EmployeeRepository employeeRepository;
+    private final TimeOffRepository timeOffRepository;
     
     @Value("${attendance.auto.mark.enabled:true}")
     private boolean autoMarkEnabled;
@@ -40,33 +42,45 @@ public class AttendanceSchedulerService {
         
         int markedCount = 0;
         int skippedCount = 0;
+        int onLeaveCount = 0;
         
         for (Employee employee : activeEmployees) {
             boolean alreadyMarked = attendanceRepository
                 .findByEmployeeAndAttendanceDate(employee, today)
                 .isPresent();
             
-            if (!alreadyMarked) {
-                Attendance attendance = new Attendance();
-                attendance.setEmployee(employee);
-                attendance.setAttendanceDate(today);
-                attendance.setCheckInTime(LocalTime.of(8, 0));
-                attendance.setCheckOutTime(LocalTime.of(23, 59));
-                attendance.setIsPresent(true);
-                attendance.setAttendanceStatus("PRESENT");
-                attendance.setNotes("Auto-marked by system");
-                
-                attendanceRepository.save(attendance);
-                markedCount++;
-                log.debug("Auto-marked attendance for employee: {}", employee.getName());
-            } else {
+            if (alreadyMarked) {
                 skippedCount++;
                 log.debug("Skipped employee {} - attendance already marked", employee.getName());
+                continue;
             }
+            
+            // Check if employee has leave on this date
+            boolean hasLeave = timeOffRepository.hasLeaveOnDate(employee, today);
+            
+            if (hasLeave) {
+                onLeaveCount++;
+                log.debug("Skipped employee {} - on leave today", employee.getName());
+                continue;
+            }
+            
+            // Mark attendance for employee
+            Attendance attendance = new Attendance();
+            attendance.setEmployee(employee);
+            attendance.setAttendanceDate(today);
+            attendance.setCheckInTime(LocalTime.of(8, 0));
+            attendance.setCheckOutTime(LocalTime.of(23, 59));
+            attendance.setIsPresent(true);
+            attendance.setAttendanceStatus("PRESENT");
+            attendance.setNotes("Auto-marked by system");
+            
+            attendanceRepository.save(attendance);
+            markedCount++;
+            log.debug("Auto-marked attendance for employee: {}", employee.getName());
         }
         
-        log.info("Automatic attendance marking completed. Marked: {}, Skipped: {}, Total Active Employees: {}", 
-                 markedCount, skippedCount, activeEmployees.size());
+        log.info("Automatic attendance marking completed. Marked: {}, Already Marked: {}, On Leave: {}, Total Active Employees: {}", 
+                 markedCount, skippedCount, onLeaveCount, activeEmployees.size());
     }
     
     @Transactional
@@ -78,31 +92,42 @@ public class AttendanceSchedulerService {
         
         int markedCount = 0;
         int skippedCount = 0;
+        int onLeaveCount = 0;
         
         for (Employee employee : activeEmployees) {
             boolean alreadyMarked = attendanceRepository
                 .findByEmployeeAndAttendanceDate(employee, today)
                 .isPresent();
             
-            if (!alreadyMarked) {
-                Attendance attendance = new Attendance();
-                attendance.setEmployee(employee);
-                attendance.setAttendanceDate(today);
-                attendance.setCheckInTime(LocalTime.of(8, 0));
-                attendance.setCheckOutTime(LocalTime.of(23, 59));
-                attendance.setIsPresent(true);
-                attendance.setAttendanceStatus("PRESENT");
-                attendance.setNotes("Auto-marked by system (manual trigger)");
-                
-                attendanceRepository.save(attendance);
-                markedCount++;
-            } else {
+            if (alreadyMarked) {
                 skippedCount++;
+                continue;
             }
+            
+            // Check if employee has leave on this date
+            boolean hasLeave = timeOffRepository.hasLeaveOnDate(employee, today);
+            
+            if (hasLeave) {
+                onLeaveCount++;
+                continue;
+            }
+            
+            // Mark attendance for employee
+            Attendance attendance = new Attendance();
+            attendance.setEmployee(employee);
+            attendance.setAttendanceDate(today);
+            attendance.setCheckInTime(LocalTime.of(8, 0));
+            attendance.setCheckOutTime(LocalTime.of(23, 59));
+            attendance.setIsPresent(true);
+            attendance.setAttendanceStatus("PRESENT");
+            attendance.setNotes("Auto-marked by system (manual trigger)");
+            
+            attendanceRepository.save(attendance);
+            markedCount++;
         }
         
-        String result = String.format("Manual auto-attendance completed. Marked: %d, Skipped: %d, Total Active Employees: %d", 
-                                      markedCount, skippedCount, activeEmployees.size());
+        String result = String.format("Manual auto-attendance completed. Marked: %d, Already Marked: %d, On Leave: %d, Total Active Employees: %d", 
+                                      markedCount, skippedCount, onLeaveCount, activeEmployees.size());
         log.info(result);
         return result;
     }

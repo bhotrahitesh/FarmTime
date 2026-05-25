@@ -13,9 +13,11 @@ import MarkAttendanceScreen from '../screens/MarkAttendanceScreen';
 import EditAttendanceScreen from '../screens/EditAttendanceScreen';
 import PaymentsScreen from '../screens/PaymentsScreen';
 import AddPaymentScreen from '../screens/AddPaymentScreen';
+import EditPaymentScreen from '../screens/EditPaymentScreen';
 import SalaryCycleScreen from '../screens/SalaryCycleScreen';
 import TimeOffScreen from '../screens/TimeOffScreen';
 import AddTimeOffScreen from '../screens/AddTimeOffScreen';
+import EditTimeOffScreen from '../screens/EditTimeOffScreen';
 import ReportsScreen from '../screens/ReportsScreen';
 
 const Tab = createBottomTabNavigator();
@@ -84,6 +86,11 @@ function PaymentsStack() {
         options={{ title: 'Add Payment' }}
       />
       <Stack.Screen 
+        name="EditPayment" 
+        component={EditPaymentScreen}
+        options={{ title: 'Edit Payment' }}
+      />
+      <Stack.Screen 
         name="SalaryCycle" 
         component={SalaryCycleScreen}
         options={{ title: 'Salary Cycle Summary' }}
@@ -104,6 +111,11 @@ function TimeOffStack() {
         name="AddTimeOff" 
         component={AddTimeOffScreen}
         options={{ title: 'Add Time Off' }}
+      />
+      <Stack.Screen 
+        name="EditTimeOff" 
+        component={EditTimeOffScreen}
+        options={{ title: 'Edit Time Off' }}
       />
     </Stack.Navigator>
   );

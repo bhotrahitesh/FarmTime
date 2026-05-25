@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { FAB, Card, Title, Paragraph, Chip, Searchbar, Button } from 'react-native-paper';
+import { FAB, Card, Title, Paragraph, Chip, Searchbar, Button, IconButton } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
-import { getPaymentsByDateRange, getAllEmployeesCurrentCycleSummary } from '../services/api';
+import { getPaymentsByDateRange, deletePayment } from '../services/api';
 import { formatDate } from '../utils/dateFormatter';
 import { getErrorMessage } from '../utils/errorHandler';
 
@@ -64,6 +64,37 @@ export default function PaymentsScreen({ navigation }) {
     }
   };
 
+  const handleEdit = (payment) => {
+    navigation.navigate('EditPayment', { payment });
+  };
+
+  const handleDelete = (payment) => {
+    Alert.alert(
+      'Delete Payment',
+      `Are you sure you want to delete this payment of ₹${payment.amount.toLocaleString('en-IN')} for ${payment.employeeName}?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deletePayment(payment.id);
+              Alert.alert('Success', 'Payment deleted successfully');
+              loadPayments();
+            } catch (error) {
+              const errorMessage = getErrorMessage(error, 'Failed to delete payment');
+              Alert.alert('Error', errorMessage);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderPayment = ({ item }) => (
     <Card style={styles.card}>
       <Card.Content>
@@ -79,6 +110,20 @@ export default function PaymentsScreen({ navigation }) {
         <Paragraph style={styles.amount}>₹{item.amount?.toLocaleString('en-IN')}</Paragraph>
         <Paragraph>Date: {formatDate(item.paymentDate)}</Paragraph>
         {item.description && <Paragraph>Description: {item.description}</Paragraph>}
+        <View style={styles.cardActions}>
+          <IconButton
+            icon="pencil"
+            size={20}
+            iconColor="#2196F3"
+            onPress={() => handleEdit(item)}
+          />
+          <IconButton
+            icon="delete"
+            size={20}
+            iconColor="#F44336"
+            onPress={() => handleDelete(item)}
+          />
+        </View>
       </Card.Content>
     </Card>
   );
@@ -160,6 +205,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#4CAF50',
     marginBottom: 8,
+  },
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+    marginRight: -12,
   },
   fab: {
     position: 'absolute',

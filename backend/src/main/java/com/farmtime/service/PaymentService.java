@@ -98,8 +98,9 @@ public class PaymentService {
     }
     
     /**
-     * Validates that total payments (SALARY + ADVANCE + BONUS - DEDUCTION) in a cycle 
+     * Validates that total payments (SALARY + ADVANCE + DEDUCTION) in a cycle 
      * don't exceed employee's monthly salary.
+     * Note: Deductions are added to the total because they represent money already accounted for in the cycle.
      * 
      * @param employee The employee
      * @param paymentDate The payment date
@@ -124,30 +125,59 @@ public class PaymentService {
             .filter(p -> excludePaymentId == null || !p.getId().equals(excludePaymentId))
             .collect(Collectors.toList());
         
-        // Calculate total existing payments (SALARY + ADVANCE + BONUS - DEDUCTION)
-        double totalExistingPayments = 0.0;
+        // Calculate totals by payment type
+        double totalSalary = 0.0;
+        double totalAdvance = 0.0;
+        double totalDeduction = 0.0;
+        
         for (Payment p : existingPayments) {
-            if (p.getPaymentType() == PaymentType.DEDUCTION) {
-                totalExistingPayments -= p.getAmount();
-            } else {
-                totalExistingPayments += p.getAmount();
+            switch (p.getPaymentType()) {
+                case SALARY:
+                    totalSalary += p.getAmount();
+                    break;
+                case ADVANCE:
+                    totalAdvance += p.getAmount();
+                    break;
+                case DEDUCTION:
+                    totalDeduction += p.getAmount();
+                    break;
             }
         }
         
-        // Calculate total if we add this payment
-        double newPaymentAmount = (paymentType == PaymentType.DEDUCTION) ? -amount : amount;
-        double totalPaymentsAfter = totalExistingPayments + newPaymentAmount;
+        // Add the new payment to respective category
+        switch (paymentType) {
+            case SALARY:
+                totalSalary += amount;
+                break;
+            case ADVANCE:
+                totalAdvance += amount;
+                break;
+            case DEDUCTION:
+                totalDeduction += amount;
+                break;
+        }
+        
+        // Total paid = SALARY + ADVANCE + DEDUCTION
+        // (Deduction is added because it represents money already dealt with in the cycle)
+        double totalPaid = totalSalary + totalAdvance + totalDeduction;
+        double remaining = employee.getMonthlySalary() - totalPaid;
         
         // Check if it exceeds monthly salary
-        if (totalPaymentsAfter > employee.getMonthlySalary()) {
+        if (totalPaid > employee.getMonthlySalary()) {
             throw new ValidationException(
-                "You cannot pay more than the employee salary for the month. " +
                 String.format(
-                    "Employee monthly salary: ₹%.2f, Total payments in cycle (%s to %s) would be: ₹%.2f",
+                    "Cannot process payment. Employee monthly salary: ₹%.2f. " +
+                    "In current cycle (%s to %s): Salary paid: ₹%.2f, Advance: ₹%.2f, Deduction: ₹%.2f. " +
+                    "Total: ₹%.2f. Remaining: ₹%.2f. You are trying to add ₹%.2f which exceeds the limit.",
                     employee.getMonthlySalary(),
                     cycleStart,
                     cycleEnd,
-                    totalPaymentsAfter
+                    totalSalary,
+                    totalAdvance,
+                    totalDeduction,
+                    totalPaid,
+                    remaining,
+                    amount
                 )
             );
         }

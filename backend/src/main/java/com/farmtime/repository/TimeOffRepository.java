@@ -23,6 +23,9 @@ public interface TimeOffRepository extends JpaRepository<TimeOff, Long> {
     @Query("SELECT COUNT(t) FROM TimeOff t WHERE t.employee.id = :employeeId AND t.startDate <= :endDate AND t.endDate >= :startDate AND t.id != :excludeId")
     long countOverlappingTimeOffExcluding(@Param("employeeId") Long employeeId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate, @Param("excludeId") Long excludeId);
 
+    @Query("SELECT CASE WHEN COUNT(t) > 0 THEN true ELSE false END FROM TimeOff t WHERE t.employee = :employee AND :date BETWEEN t.startDate AND t.endDate")
+    boolean hasLeaveOnDate(@Param("employee") Employee employee, @Param("date") LocalDate date);
+
     @Modifying
     @Query("DELETE FROM TimeOff t WHERE t.endDate < :cutoffDate")
     void deleteOldRecords(@Param("cutoffDate") LocalDate cutoffDate);
