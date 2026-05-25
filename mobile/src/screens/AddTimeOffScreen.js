@@ -10,6 +10,7 @@ const TIME_OFF_TYPES = ['SICK_LEAVE', 'CASUAL_LEAVE', 'HOLIDAY', 'UNPAID_LEAVE']
 
 export default function AddTimeOffScreen({ navigation }) {
   const [employees, setEmployees] = useState([]);
+  const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [employeeMenuVisible, setEmployeeMenuVisible] = useState(false);
   const [timeOffType, setTimeOffType] = useState('CASUAL_LEAVE');
@@ -25,6 +26,10 @@ export default function AddTimeOffScreen({ navigation }) {
     loadEmployees();
   }, []);
 
+  useEffect(() => {
+    filterEmployeesByDateAndStatus();
+  }, [employees, startDate]);
+
   const loadEmployees = async () => {
     try {
       const response = await getActiveEmployees();
@@ -33,6 +38,19 @@ export default function AddTimeOffScreen({ navigation }) {
       const errorMessage = getErrorMessage(error, 'Failed to load employees');
       Alert.alert('Error', errorMessage);
       setEmployees([]);
+    }
+  };
+
+  const filterEmployeesByDateAndStatus = () => {
+    const selectedDate = startDate.toISOString().split('T')[0];
+    const filtered = employees.filter(emp => {
+      return emp.isActive && emp.joiningDate <= selectedDate;
+    });
+    setFilteredEmployees(filtered);
+    
+    // If selected employee is no longer in filtered list, clear selection
+    if (selectedEmployee && !filtered.find(emp => emp.id === selectedEmployee.id)) {
+      setSelectedEmployee(null);
     }
   };
 
@@ -80,21 +98,29 @@ export default function AddTimeOffScreen({ navigation }) {
               mode="outlined"
               onPress={() => setEmployeeMenuVisible(true)}
               style={styles.input}
+              disabled={filteredEmployees.length === 0}
             >
-              {selectedEmployee ? selectedEmployee.name : 'Select Employee *'}
+              {selectedEmployee ? selectedEmployee.name : filteredEmployees.length === 0 ? 'No employees available for this date' : 'Select Employee *'}
             </Button>
           }
         >
-          {employees.map((emp) => (
+          {filteredEmployees.length > 0 ? (
+            filteredEmployees.map((emp) => (
+              <Menu.Item
+                key={emp.id}
+                onPress={() => {
+                  setSelectedEmployee(emp);
+                  setEmployeeMenuVisible(false);
+                }}
+                title={emp.name}
+              />
+            ))
+          ) : (
             <Menu.Item
-              key={emp.id}
-              onPress={() => {
-                setSelectedEmployee(emp);
-                setEmployeeMenuVisible(false);
-              }}
-              title={emp.name}
+              title="No employees available for this date"
+              disabled
             />
-          ))}
+          )}
         </Menu>
 
         <Menu

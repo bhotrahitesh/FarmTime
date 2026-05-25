@@ -43,8 +43,16 @@ public class AttendanceSchedulerService {
         int markedCount = 0;
         int skippedCount = 0;
         int onLeaveCount = 0;
+        int notJoinedCount = 0;
         
         for (Employee employee : activeEmployees) {
+            // Check if employee has joined yet
+            if (today.isBefore(employee.getJoiningDate())) {
+                notJoinedCount++;
+                log.debug("Skipped employee {} - has not joined yet (joining date: {})", employee.getName(), employee.getJoiningDate());
+                continue;
+            }
+            
             boolean alreadyMarked = attendanceRepository
                 .findByEmployeeAndAttendanceDate(employee, today)
                 .isPresent();
@@ -79,8 +87,8 @@ public class AttendanceSchedulerService {
             log.debug("Auto-marked attendance for employee: {}", employee.getName());
         }
         
-        log.info("Automatic attendance marking completed. Marked: {}, Already Marked: {}, On Leave: {}, Total Active Employees: {}", 
-                 markedCount, skippedCount, onLeaveCount, activeEmployees.size());
+        log.info("Automatic attendance marking completed. Marked: {}, Already Marked: {}, On Leave: {}, Not Joined: {}, Total Active Employees: {}", 
+                 markedCount, skippedCount, onLeaveCount, notJoinedCount, activeEmployees.size());
     }
     
     @Transactional
@@ -93,8 +101,15 @@ public class AttendanceSchedulerService {
         int markedCount = 0;
         int skippedCount = 0;
         int onLeaveCount = 0;
+        int notJoinedCount = 0;
         
         for (Employee employee : activeEmployees) {
+            // Check if employee has joined yet
+            if (today.isBefore(employee.getJoiningDate())) {
+                notJoinedCount++;
+                continue;
+            }
+            
             boolean alreadyMarked = attendanceRepository
                 .findByEmployeeAndAttendanceDate(employee, today)
                 .isPresent();
@@ -126,8 +141,8 @@ public class AttendanceSchedulerService {
             markedCount++;
         }
         
-        String result = String.format("Manual auto-attendance completed. Marked: %d, Already Marked: %d, On Leave: %d, Total Active Employees: %d", 
-                                      markedCount, skippedCount, onLeaveCount, activeEmployees.size());
+        String result = String.format("Manual auto-attendance completed. Marked: %d, Already Marked: %d, On Leave: %d, Not Joined: %d, Total Active Employees: %d", 
+                                      markedCount, skippedCount, onLeaveCount, notJoinedCount, activeEmployees.size());
         log.info(result);
         return result;
     }

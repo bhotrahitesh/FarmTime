@@ -3,7 +3,7 @@ import { View, StyleSheet, FlatList, Alert } from 'react-native';
 import { Card, Title, Paragraph, Chip, Searchbar, IconButton } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getActiveEmployees, deleteEmployee } from '../services/api';
+import { getEmployees, deleteEmployee } from '../services/api';
 import { formatDate } from '../utils/dateFormatter';
 import { getErrorMessage } from '../utils/errorHandler';
 import AnimatedCard from '../components/AnimatedCard';
@@ -35,7 +35,7 @@ export default function EmployeesScreen({ navigation }) {
   const loadEmployees = async () => {
     setLoading(true);
     try {
-      const response = await getActiveEmployees();
+      const response = await getEmployees();
       setEmployees(response.data || []);
       setFilteredEmployees(response.data || []);
     } catch (error) {
@@ -97,7 +97,9 @@ export default function EmployeesScreen({ navigation }) {
       <Card.Content>
         <View style={styles.cardHeader}>
           <Title>{item.name}</Title>
-          <Chip mode="flat" style={styles.chip}>Active</Chip>
+          <Chip mode="flat" style={item.isActive ? styles.activeChip : styles.inactiveChip}>
+            {item.isActive ? 'Active' : 'Inactive'}
+          </Chip>
         </View>
         <Paragraph>Phone: {item.phoneNumber}</Paragraph>
         <Paragraph>Salary: ₹{item.monthlySalary?.toLocaleString('en-IN')}/month</Paragraph>
@@ -168,8 +170,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  chip: {
+  activeChip: {
     backgroundColor: '#4CAF50',
+  },
+  inactiveChip: {
+    backgroundColor: '#9E9E9E',
   },
   cardActions: {
     flexDirection: 'row',

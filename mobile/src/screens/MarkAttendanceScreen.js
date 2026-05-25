@@ -16,6 +16,7 @@ const ATTENDANCE_STATUSES = [
 
 export default function MarkAttendanceScreen({ navigation }) {
   const [employees, setEmployees] = useState([]);
+  const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [menuVisible, setMenuVisible] = useState(false);
   const [attendanceDate, setAttendanceDate] = useState(new Date());
@@ -35,6 +36,10 @@ export default function MarkAttendanceScreen({ navigation }) {
     loadEmployees();
   }, []);
 
+  useEffect(() => {
+    filterEmployeesByJoiningDate();
+  }, [employees, attendanceDate]);
+
   const loadEmployees = async () => {
     try {
       const response = await getActiveEmployees();
@@ -43,6 +48,19 @@ export default function MarkAttendanceScreen({ navigation }) {
       const errorMessage = getErrorMessage(error, 'Failed to load employees');
       Alert.alert('Error', errorMessage);
       setEmployees([]);
+    }
+  };
+
+  const filterEmployeesByJoiningDate = () => {
+    const selectedDate = attendanceDate.toISOString().split('T')[0];
+    const filtered = employees.filter(emp => {
+      return emp.isActive && emp.joiningDate <= selectedDate;
+    });
+    setFilteredEmployees(filtered);
+    
+    // If selected employee is no longer in filtered list, clear selection
+    if (selectedEmployee && !filtered.find(emp => emp.id === selectedEmployee.id)) {
+      setSelectedEmployee(null);
     }
   };
 
@@ -109,21 +127,29 @@ export default function MarkAttendanceScreen({ navigation }) {
               mode="outlined"
               onPress={() => setMenuVisible(true)}
               style={styles.input}
+              disabled={filteredEmployees.length === 0}
             >
-              {selectedEmployee ? selectedEmployee.name : 'Select Employee'}
+              {selectedEmployee ? selectedEmployee.name : filteredEmployees.length === 0 ? 'No employees available for this date' : 'Select Employee'}
             </Button>
           }
         >
-          {employees.map((emp) => (
+          {filteredEmployees.length > 0 ? (
+            filteredEmployees.map((emp) => (
+              <Menu.Item
+                key={emp.id}
+                onPress={() => {
+                  setSelectedEmployee(emp);
+                  setMenuVisible(false);
+                }}
+                title={emp.name}
+              />
+            ))
+          ) : (
             <Menu.Item
-              key={emp.id}
-              onPress={() => {
-                setSelectedEmployee(emp);
-                setMenuVisible(false);
-              }}
-              title={emp.name}
+              title="No employees available for this date"
+              disabled
             />
-          ))}
+          )}
         </Menu>
 
         <Button

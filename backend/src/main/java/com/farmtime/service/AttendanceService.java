@@ -41,6 +41,14 @@ public class AttendanceService {
         Employee employee = employeeRepository.findById(dto.getEmployeeId())
             .orElseThrow(() -> new ResourceNotFoundException("Employee not found with ID: " + dto.getEmployeeId()));
         
+        // Check if attendance date is before employee's joining date
+        if (dto.getAttendanceDate().isBefore(employee.getJoiningDate())) {
+            throw new ValidationException(
+                "Cannot mark attendance for " + employee.getName() + " before their joining date (" + 
+                employee.getJoiningDate() + "). Employee has not joined yet on " + dto.getAttendanceDate() + "."
+            );
+        }
+        
         // Check if attendance already exists for this date
         attendanceRepository.findByEmployeeAndAttendanceDate(employee, dto.getAttendanceDate())
             .ifPresent(a -> {
