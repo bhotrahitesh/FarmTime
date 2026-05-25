@@ -25,6 +25,9 @@ public class SalaryCycleController {
         try {
             log.info("Getting current salary cycle summary for employee: {}", employeeId);
             SalaryCycleSummaryDTO summary = salaryCycleService.getCurrentSalaryCycleSummary(employeeId);
+            log.info("Returning summary - Employee: {}, Monthly: {}, Deduction: {}, TotalPaid: {}, Remaining: {}", 
+                     summary.getEmployeeName(), summary.getMonthlySalary(), 
+                     summary.getTotalDeduction(), summary.getTotalPaid(), summary.getRemainingAmount());
             return ResponseEntity.ok(summary);
         } catch (Exception e) {
             log.error("Error getting current cycle summary for employee {}: {}", employeeId, e.getMessage(), e);

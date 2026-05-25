@@ -133,8 +133,8 @@ public class SalaryCycleService {
             }
         }
         
-        double netPayable = employee.getMonthlySalary() + totalBonus - totalDeduction;
-        double remainingAmount = netPayable - totalPaid;
+        double netPayable = employee.getMonthlySalary();
+        double remainingAmount = netPayable - (totalPaid + totalDeduction);
         
         SalaryCycleSummaryDTO summary = new SalaryCycleSummaryDTO();
         summary.setEmployeeId(employee.getId());
