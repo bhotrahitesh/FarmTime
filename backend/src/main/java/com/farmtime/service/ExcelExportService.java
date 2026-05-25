@@ -353,13 +353,14 @@ public class ExcelExportService {
                     deductionCell.setCellValue(summary.getDeduction());
                     deductionCell.setCellStyle(currencyStyle);
                     
-                    double netPayable = summary.getMonthlySalary() + summary.getBonus() - summary.getDeduction();
+                    double netPayable = summary.getMonthlySalary();
                     Cell netPayableCell = summaryRow.createCell(6);
                     netPayableCell.setCellValue(netPayable);
                     netPayableCell.setCellStyle(currencyStyle);
                     
-                    double totalPaid = summary.getSalaryPaid() + summary.getAdvance() + summary.getBonus() - summary.getDeduction();
-                    double remaining = netPayable - totalPaid;
+                    // Remaining = Monthly Salary - (SALARY + ADVANCE + DEDUCTION)
+                    double totalPaid = summary.getSalaryPaid() + summary.getAdvance() + summary.getDeduction();
+                    double remaining = summary.getMonthlySalary() - totalPaid;
                     
                     Cell remainingCell = summaryRow.createCell(7);
                     remainingCell.setCellValue(remaining);
