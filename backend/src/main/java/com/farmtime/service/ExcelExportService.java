@@ -322,7 +322,7 @@ public class ExcelExportService {
                     cell.setCellStyle(headerStyle);
                     // Auto-size columns for better readability
                     if (i == 0) {
-                        sheet.setColumnWidth(i, 6000); // Employee Name - wider for full names
+                        sheet.setColumnWidth(i, 7000); // Employee Name - wider for full names (matches salary cycle section)
                     } else {
                         sheet.setColumnWidth(i, 4500);
                     }
