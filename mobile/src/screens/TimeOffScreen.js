@@ -1,10 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { FAB, Card, Title, Paragraph, Chip, Searchbar, IconButton } from 'react-native-paper';
+import { Card, Title, Paragraph, Chip, Searchbar, IconButton } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { getTimeOffByDateRange, deleteTimeOff } from '../services/api';
 import { formatDate } from '../utils/dateFormatter';
 import { getErrorMessage } from '../utils/errorHandler';
+import AnimatedCard from '../components/AnimatedCard';
+import AnimatedFAB from '../components/AnimatedFAB';
 
 export default function TimeOffScreen({ navigation }) {
   const [timeOffs, setTimeOffs] = useState([]);
@@ -123,11 +125,11 @@ export default function TimeOffScreen({ navigation }) {
     );
   };
 
-  const renderTimeOff = ({ item }) => {
+  const renderTimeOff = ({ item, index }) => {
     const leaveUsed = isLeaveUsed(item.startDate);
     
     return (
-      <Card style={styles.card}>
+      <AnimatedCard style={styles.card} index={index}>
         <Card.Content>
           <View style={styles.cardHeader}>
             <Title>{item.employeeName}</Title>
@@ -162,7 +164,7 @@ export default function TimeOffScreen({ navigation }) {
             />
           </View>
         </Card.Content>
-      </Card>
+      </AnimatedCard>
     );
   };
 
@@ -182,11 +184,10 @@ export default function TimeOffScreen({ navigation }) {
         refreshing={loading}
         onRefresh={loadTimeOffs}
       />
-      <FAB
+      <AnimatedFAB
         icon="plus"
         style={styles.fab}
         onPress={() => navigation.navigate('AddTimeOff')}
-        color="white"
       />
     </View>
   );
@@ -228,6 +229,5 @@ const styles = StyleSheet.create({
     margin: 16,
     right: 0,
     bottom: 0,
-    backgroundColor: '#4CAF50',
   },
 });

@@ -1,10 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { FAB, Card, Title, Paragraph, Chip, Searchbar, Button, IconButton } from 'react-native-paper';
+import { Card, Title, Paragraph, Chip, Searchbar, Button, IconButton } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { getPaymentsByDateRange, deletePayment } from '../services/api';
 import { formatDate } from '../utils/dateFormatter';
 import { getErrorMessage } from '../utils/errorHandler';
+import AnimatedCard from '../components/AnimatedCard';
+import AnimatedFAB from '../components/AnimatedFAB';
 
 export default function PaymentsScreen({ navigation }) {
   const [payments, setPayments] = useState([]);
@@ -95,8 +97,8 @@ export default function PaymentsScreen({ navigation }) {
     );
   };
 
-  const renderPayment = ({ item }) => (
-    <Card style={styles.card}>
+  const renderPayment = ({ item, index }) => (
+    <AnimatedCard style={styles.card} index={index}>
       <Card.Content>
         <View style={styles.cardHeader}>
           <Title>{item.employeeName}</Title>
@@ -125,7 +127,7 @@ export default function PaymentsScreen({ navigation }) {
           />
         </View>
       </Card.Content>
-    </Card>
+    </AnimatedCard>
   );
 
   return (
@@ -155,11 +157,10 @@ export default function PaymentsScreen({ navigation }) {
         refreshing={loading}
         onRefresh={loadPayments}
       />
-      <FAB
+      <AnimatedFAB
         icon="plus"
         style={styles.fab}
         onPress={() => navigation.navigate('AddPayment')}
-        color="white"
       />
     </View>
   );
@@ -217,6 +218,5 @@ const styles = StyleSheet.create({
     margin: 16,
     right: 0,
     bottom: 0,
-    backgroundColor: '#4CAF50',
   },
 });

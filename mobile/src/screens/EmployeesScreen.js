@@ -1,22 +1,36 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { FAB, Card, Title, Paragraph, Chip, Searchbar } from 'react-native-paper';
+import { Card, Title, Paragraph, Chip, Searchbar, IconButton } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
-import { getActiveEmployees } from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getActiveEmployees, deleteEmployee } from '../services/api';
 import { formatDate } from '../utils/dateFormatter';
 import { getErrorMessage } from '../utils/errorHandler';
+import AnimatedCard from '../components/AnimatedCard';
+import AnimatedFAB from '../components/AnimatedFAB';
 
 export default function EmployeesScreen({ navigation }) {
   const [employees, setEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [userRole, setUserRole] = useState('ADMIN');
 
   useFocusEffect(
     useCallback(() => {
+      loadUserRole();
       loadEmployees();
     }, [])
   );
+
+  const loadUserRole = async () => {
+    try {
+      const role = await AsyncStorage.getItem('userRole');
+      setUserRole(role || 'ADMIN');
+    } catch (error) {
+      console.error('Failed to load user role:', error);
+    }
+  };
 
   const loadEmployees = async () => {
     setLoading(true);
@@ -47,11 +61,39 @@ export default function EmployeesScreen({ navigation }) {
     }
   };
 
-  const renderEmployee = ({ item }) => (
-    <Card
-      style={styles.card}
-      onPress={() => navigation.navigate('EmployeeDetail', { employee: item })}
-    >
+  const handleEdit = (employee) => {
+    navigation.navigate('EditEmployee', { employee });
+  };
+
+  const handleDelete = (employee) => {
+    Alert.alert(
+      'Delete Employee',
+      `Are you sure you want to delete ${employee.name}? This action cannot be undone.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteEmployee(employee.id);
+              Alert.alert('Success', 'Employee deleted successfully');
+              loadEmployees();
+            } catch (error) {
+              const errorMessage = getErrorMessage(error, 'Failed to delete employee');
+              Alert.alert('Error', errorMessage);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const renderEmployee = ({ item, index }) => (
+    <AnimatedCard style={styles.card} index={index}>
       <Card.Content>
         <View style={styles.cardHeader}>
           <Title>{item.name}</Title>
@@ -60,8 +102,24 @@ export default function EmployeesScreen({ navigation }) {
         <Paragraph>Phone: {item.phoneNumber}</Paragraph>
         <Paragraph>Salary: ₹{item.monthlySalary?.toLocaleString('en-IN')}/month</Paragraph>
         <Paragraph>Joined: {formatDate(item.joiningDate)}</Paragraph>
+        <View style={styles.cardActions}>
+          <IconButton
+            icon="pencil"
+            size={20}
+            iconColor="#2196F3"
+            onPress={() => handleEdit(item)}
+          />
+          {userRole === 'SUPER_ADMIN' && (
+            <IconButton
+              icon="delete"
+              size={20}
+              iconColor="#F44336"
+              onPress={() => handleDelete(item)}
+            />
+          )}
+        </View>
       </Card.Content>
-    </Card>
+    </AnimatedCard>
   );
 
   return (
@@ -80,11 +138,10 @@ export default function EmployeesScreen({ navigation }) {
         refreshing={loading}
         onRefresh={loadEmployees}
       />
-      <FAB
+      <AnimatedFAB
         icon="plus"
         style={styles.fab}
         onPress={() => navigation.navigate('AddEmployee')}
-        color="white"
       />
     </View>
   );
@@ -114,11 +171,16 @@ const styles = StyleSheet.create({
   chip: {
     backgroundColor: '#4CAF50',
   },
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+    marginRight: -12,
+  },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
-    backgroundColor: '#4CAF50',
   },
 });

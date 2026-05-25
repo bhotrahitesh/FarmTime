@@ -1,10 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { FAB, Card, Title, Paragraph, Chip, Searchbar, IconButton } from 'react-native-paper';
+import { Card, Title, Paragraph, Chip, Searchbar, IconButton } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { getAttendanceByDateRange } from '../services/api';
 import { formatDate } from '../utils/dateFormatter';
 import { getErrorMessage } from '../utils/errorHandler';
+import AnimatedCard from '../components/AnimatedCard';
+import AnimatedFAB from '../components/AnimatedFAB';
 
 export default function AttendanceScreen({ navigation }) {
   const [attendance, setAttendance] = useState([]);
@@ -79,8 +81,8 @@ export default function AttendanceScreen({ navigation }) {
     navigation.navigate('EditAttendance', { attendance });
   };
 
-  const renderAttendance = ({ item }) => (
-    <Card style={styles.card}>
+  const renderAttendance = ({ item, index }) => (
+    <AnimatedCard style={styles.card} index={index}>
       <Card.Content>
         <View style={styles.cardHeader}>
           <Title>{item.employeeName}</Title>
@@ -110,7 +112,7 @@ export default function AttendanceScreen({ navigation }) {
           />
         </View>
       </Card.Content>
-    </Card>
+    </AnimatedCard>
   );
 
   return (
@@ -129,11 +131,10 @@ export default function AttendanceScreen({ navigation }) {
         refreshing={loading}
         onRefresh={loadAttendance}
       />
-      <FAB
+      <AnimatedFAB
         icon="plus"
         style={styles.fab}
         onPress={() => navigation.navigate('MarkAttendance')}
-        color="white"
       />
     </View>
   );
@@ -181,6 +182,5 @@ const styles = StyleSheet.create({
     margin: 16,
     right: 0,
     bottom: 0,
-    backgroundColor: '#4CAF50',
   },
 });

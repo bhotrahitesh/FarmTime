@@ -139,7 +139,7 @@ export default function AdminManagementScreen({ navigation }) {
               style={[styles.roleChip, { backgroundColor: getRoleColor(admin.role) }]}
               textStyle={styles.chipText}
             >
-              {admin.role}
+              {admin.role.replace('_', ' ')}
             </Chip>
             {!admin.isActive && (
               <Chip style={styles.inactiveChip} textStyle={styles.chipText}>
@@ -322,16 +322,19 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   roleChip: {
-    height: 28,
+    minHeight: 32,
+    paddingVertical: 4,
   },
   inactiveChip: {
-    height: 28,
+    minHeight: 32,
+    paddingVertical: 4,
     backgroundColor: '#9E9E9E',
   },
   chipText: {
     color: 'white',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
+    lineHeight: 16,
   },
   divider: {
     marginVertical: 12,
