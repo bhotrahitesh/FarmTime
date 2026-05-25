@@ -113,6 +113,12 @@ export default function AddPaymentScreen({ navigation }) {
                 <Paragraph>Monthly Salary:</Paragraph>
                 <Paragraph style={styles.summaryValue}>₹{salaryCycleSummary.monthlySalary?.toLocaleString('en-IN')}</Paragraph>
               </View>
+              {salaryCycleSummary.totalDeduction > 0 && (
+                <View style={styles.summaryRow}>
+                  <Paragraph>Deduction:</Paragraph>
+                  <Paragraph style={[styles.summaryValue, styles.deductionText]}>-₹{salaryCycleSummary.totalDeduction?.toLocaleString('en-IN')}</Paragraph>
+                </View>
+              )}
               <View style={styles.summaryRow}>
                 <Paragraph>Total Paid:</Paragraph>
                 <Paragraph style={styles.summaryValue}>₹{salaryCycleSummary.totalPaid?.toLocaleString('en-IN')}</Paragraph>

@@ -129,7 +129,6 @@ public class SalaryCycleService {
                     break;
                 case DEDUCTION:
                     totalDeduction += payment.getAmount();
-                    totalPaid -= payment.getAmount();
                     break;
             }
         }
