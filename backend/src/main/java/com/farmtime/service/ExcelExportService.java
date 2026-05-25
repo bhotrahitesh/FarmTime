@@ -311,11 +311,11 @@ public class ExcelExportService {
                 summaryTitleCell.setCellValue("Employees Payment Summary");
                 CellStyle summaryTitleStyle = createTitleStyle(workbook);
                 summaryTitleCell.setCellStyle(summaryTitleStyle);
-                sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 0, 7));
+                sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 0, 6));
                 
                 Row summaryHeaderRow = sheet.createRow(rowNum++);
                 summaryHeaderRow.setHeightInPoints(25); // Increase height for header
-                String[] summaryHeaders = {"Employee", "Monthly Salary (₹)", "Salary Paid (₹)", "Advance (₹)", "Bonus (₹)", "Deduction (₹)", "Net Payable (₹)", "Remaining (₹)"};
+                String[] summaryHeaders = {"Employee", "Monthly Salary (₹)", "Salary Paid (₹)", "Advance (₹)", "Deduction (₹)", "Net Payable (₹)", "Remaining (₹)"};
                 for (int i = 0; i < summaryHeaders.length; i++) {
                     Cell cell = summaryHeaderRow.createCell(i);
                     cell.setCellValue(summaryHeaders[i]);
@@ -345,16 +345,12 @@ public class ExcelExportService {
                     advanceCell.setCellValue(summary.getAdvance());
                     advanceCell.setCellStyle(currencyStyle);
                     
-                    Cell bonusCell = summaryRow.createCell(4);
-                    bonusCell.setCellValue(summary.getBonus());
-                    bonusCell.setCellStyle(currencyStyle);
-                    
-                    Cell deductionCell = summaryRow.createCell(5);
+                    Cell deductionCell = summaryRow.createCell(4);
                     deductionCell.setCellValue(summary.getDeduction());
                     deductionCell.setCellStyle(currencyStyle);
                     
                     double netPayable = summary.getMonthlySalary();
-                    Cell netPayableCell = summaryRow.createCell(6);
+                    Cell netPayableCell = summaryRow.createCell(5);
                     netPayableCell.setCellValue(netPayable);
                     netPayableCell.setCellStyle(currencyStyle);
                     
@@ -362,7 +358,7 @@ public class ExcelExportService {
                     double totalPaid = summary.getSalaryPaid() + summary.getAdvance() + summary.getDeduction();
                     double remaining = summary.getMonthlySalary() - totalPaid;
                     
-                    Cell remainingCell = summaryRow.createCell(7);
+                    Cell remainingCell = summaryRow.createCell(6);
                     remainingCell.setCellValue(remaining);
                     
                     CellStyle remainingStyle = createCurrencyStyle(workbook);
