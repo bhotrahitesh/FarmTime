@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, FlatList, Alert } from 'react-native';
-import { FAB, Card, Title, Paragraph, Chip, Searchbar } from 'react-native-paper';
+import { FAB, Card, Title, Paragraph, Chip, Searchbar, IconButton } from 'react-native-paper';
 import { useFocusEffect } from '@react-navigation/native';
 import { getAttendanceByDateRange } from '../services/api';
 import { formatDate } from '../utils/dateFormatter';
@@ -75,11 +75,12 @@ export default function AttendanceScreen({ navigation }) {
     return labels[status] || (isPresent ? 'Present' : 'Absent');
   };
 
+  const handleEdit = (attendance) => {
+    navigation.navigate('EditAttendance', { attendance });
+  };
+
   const renderAttendance = ({ item }) => (
-    <Card 
-      style={styles.card}
-      onPress={() => navigation.navigate('EditAttendance', { attendance: item })}
-    >
+    <Card style={styles.card}>
       <Card.Content>
         <View style={styles.cardHeader}>
           <Title>{item.employeeName}</Title>
@@ -100,6 +101,14 @@ export default function AttendanceScreen({ navigation }) {
           <Paragraph>Hours Worked: {item.hoursWorked}</Paragraph>
         )}
         {item.notes && <Paragraph>Notes: {item.notes}</Paragraph>}
+        <View style={styles.cardActions}>
+          <IconButton
+            icon="pencil"
+            size={20}
+            iconColor="#2196F3"
+            onPress={() => handleEdit(item)}
+          />
+        </View>
       </Card.Content>
     </Card>
   );
@@ -154,6 +163,12 @@ const styles = StyleSheet.create({
   },
   chip: {
     minWidth: 80,
+  },
+  cardActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 8,
+    marginRight: -12,
   },
   present: {
     backgroundColor: '#4CAF50',

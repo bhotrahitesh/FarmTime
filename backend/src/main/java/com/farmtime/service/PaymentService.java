@@ -32,6 +32,11 @@ public class PaymentService {
         Employee employee = employeeRepository.findById(dto.getEmployeeId())
             .orElseThrow(() -> new RuntimeException("Employee not found"));
         
+        // Validate amount is greater than 0
+        if (dto.getAmount() <= 0) {
+            throw new ValidationException("Payment amount must be greater than 0");
+        }
+        
         // Validate total payments don't exceed monthly salary in the cycle
         validateTotalPaymentInCycle(employee, dto.getPaymentDate(), dto.getAmount(), dto.getPaymentType(), null);
         
@@ -50,6 +55,11 @@ public class PaymentService {
     public PaymentDTO updatePayment(Long id, PaymentDTO dto) {
         Payment payment = paymentRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Payment record not found"));
+        
+        // Validate amount is greater than 0
+        if (dto.getAmount() <= 0) {
+            throw new ValidationException("Payment amount must be greater than 0");
+        }
         
         // Validate total payments don't exceed monthly salary in the cycle
         validateTotalPaymentInCycle(payment.getEmployee(), dto.getPaymentDate(), dto.getAmount(), dto.getPaymentType(), id);

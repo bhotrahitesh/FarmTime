@@ -40,6 +40,12 @@ export default function EditPaymentScreen({ route, navigation }) {
       return;
     }
 
+    const amountValue = parseFloat(amount);
+    if (isNaN(amountValue) || amountValue <= 0) {
+      Alert.alert('Error', 'Payment amount must be greater than 0');
+      return;
+    }
+
     setLoading(true);
     try {
       const updatedPayment = {
