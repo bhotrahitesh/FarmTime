@@ -308,7 +308,7 @@ public class ExcelExportService {
                 Row summaryTitleRow = sheet.createRow(rowNum++);
                 summaryTitleRow.setHeightInPoints(30); // Increase height for better visibility
                 Cell summaryTitleCell = summaryTitleRow.createCell(0);
-                summaryTitleCell.setCellValue("Employee Summary for this Cycle");
+                summaryTitleCell.setCellValue("Employees Payment Summary");
                 CellStyle summaryTitleStyle = createTitleStyle(workbook);
                 summaryTitleCell.setCellStyle(summaryTitleStyle);
                 sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(rowNum - 1, rowNum - 1, 0, 7));
@@ -321,7 +321,11 @@ public class ExcelExportService {
                     cell.setCellValue(summaryHeaders[i]);
                     cell.setCellStyle(headerStyle);
                     // Auto-size columns for better readability
-                    sheet.setColumnWidth(i, 4500);
+                    if (i == 0) {
+                        sheet.setColumnWidth(i, 6000); // Employee Name - wider for full names
+                    } else {
+                        sheet.setColumnWidth(i, 4500);
+                    }
                 }
                 
                 for (EmployeeCycleSummary summary : employeeSummaries.values()) {
@@ -380,7 +384,7 @@ public class ExcelExportService {
             
             // Set column widths
             sheet.setColumnWidth(0, 2000);  // No.
-            sheet.setColumnWidth(1, 6000);  // Employee Name
+            sheet.setColumnWidth(1, 7000);  // Employee Name - wider for full names
             sheet.setColumnWidth(2, 4500);  // Monthly Salary
             sheet.setColumnWidth(3, 4000);  // Date/Salary Paid
             sheet.setColumnWidth(4, 4000);  // Amount/Advance
