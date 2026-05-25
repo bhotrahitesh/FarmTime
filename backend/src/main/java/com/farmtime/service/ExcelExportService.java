@@ -349,7 +349,7 @@ public class ExcelExportService {
                     deductionCell.setCellValue(summary.getDeduction());
                     deductionCell.setCellStyle(currencyStyle);
                     
-                    double netPayable = summary.getMonthlySalary();
+                    double netPayable = summary.getMonthlySalary() - summary.getDeduction();
                     Cell netPayableCell = summaryRow.createCell(5);
                     netPayableCell.setCellValue(netPayable);
                     netPayableCell.setCellStyle(currencyStyle);
