@@ -45,6 +45,10 @@ mobile/web-build/
 # Database credentials
 backend/src/main/resources/application-neon.properties
 
+# Database migrations with sensitive data
+database/migrations/002_create_superadmin.sql
+database/migrations/*.sql.local
+
 # AWS credentials and sensitive files
 task-definition.json
 .aws/

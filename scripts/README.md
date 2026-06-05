@@ -5,6 +5,22 @@ Automated scripts for AWS infrastructure setup and deployment.
 ## Scripts Overview
 
 ### 1. setup-aws-infrastructure.sh
+**Purpose**: One-time setup of complete AWS infrastructure (ECS + RDS)
+
+### 2. deploy-aws.sh
+**Purpose**: Deploy/update the backend application to AWS ECS
+
+### 3. setup-separate-db.sh ⭐ NEW
+**Purpose**: Setup PostgreSQL on a separate EC2 instance for database isolation
+
+### 4. migrate-to-separate-db.sh ⭐ NEW
+**Purpose**: Migrate existing database to a separate EC2 instance
+
+---
+
+## Detailed Script Documentation
+
+### 1. setup-aws-infrastructure.sh
 **Purpose**: One-time setup of complete AWS infrastructure
 
 **What it creates**:
@@ -59,6 +75,61 @@ export ECS_SERVICE=farmtime-backend-service
 
 **Time**: ~5-10 minutes
 
+### 3. setup-separate-db.sh ⭐ NEW
+**Purpose**: Automated setup of PostgreSQL on a separate EC2 instance
+
+**What it does**:
+- Installs PostgreSQL 15 on Ubuntu
+- Configures for remote connections
+- Creates database and user
+- Sets up automated backups
+- Configures monitoring extensions
+- Optimizes PostgreSQL settings
+
+**Usage**:
+```bash
+# On your NEW database EC2 instance
+chmod +x setup-separate-db.sh
+./setup-separate-db.sh
+```
+
+**Prerequisites**:
+- Fresh Ubuntu 22.04 EC2 instance
+- SSH access to the instance
+- Security group configured for PostgreSQL (port 5432)
+
+**Time**: ~10 minutes
+
+**Output**: Database connection details and configuration file
+
+### 4. migrate-to-separate-db.sh ⭐ NEW
+**Purpose**: Migrate database from current setup to separate EC2 instance
+
+**What it does**:
+- Backs up current database
+- Transfers backup to new database instance
+- Restores database on new instance
+- Updates backend configuration
+- Tests connections
+- Restarts backend with new configuration
+
+**Usage**:
+```bash
+# On your BACKEND EC2 instance
+chmod +x migrate-to-separate-db.sh
+./migrate-to-separate-db.sh
+```
+
+**Prerequisites**:
+- Database instance already setup (using setup-separate-db.sh)
+- Backend instance running
+- Network connectivity between instances
+- Security groups configured
+
+**Time**: ~20-30 minutes
+
+**Interactive**: Script will prompt for database details and confirmations
+
 ## Quick Start Guide
 
 ### First Time Setup
@@ -103,6 +174,66 @@ After initial setup, deploying updates is simple:
 cd scripts
 ./deploy-aws.sh
 ```
+
+### Database Separation Setup (Alternative to RDS) ⭐ NEW
+
+If you want to separate your database to a different EC2 instance instead of using RDS:
+
+1. **Launch Database EC2 Instance**
+   ```bash
+   # Via AWS Console:
+   # - Launch Ubuntu 22.04 instance (t2.micro or t2.small)
+   # - Name: farmtime-database
+   # - Same VPC as backend
+   # - Create security group: farmtime-database-sg
+   # - Allow port 5432 from backend security group
+   ```
+
+2. **Setup PostgreSQL on Database Instance**
+   ```bash
+   # SSH to database instance
+   ssh -i your-key.pem ubuntu@database-private-ip
+   
+   # Copy and run setup script
+   # (Upload setup-separate-db.sh to the instance first)
+   chmod +x setup-separate-db.sh
+   ./setup-separate-db.sh
+   
+   # Save the connection details displayed
+   ```
+
+3. **Migrate Database**
+   ```bash
+   # SSH to backend instance
+   ssh -i your-key.pem ubuntu@backend-ip
+   
+   # Copy and run migration script
+   # (Upload migrate-to-separate-db.sh to the instance first)
+   chmod +x migrate-to-separate-db.sh
+   ./migrate-to-separate-db.sh
+   
+   # Follow the interactive prompts
+   ```
+
+4. **Verify and Test**
+   ```bash
+   # Check backend logs
+   docker logs -f farmtime-backend-aws
+   
+   # Test API
+   curl http://localhost:8080/api/health
+   
+   # Test from mobile app
+   ```
+
+**Benefits of Separate Database EC2**:
+- ✅ Independent scaling of backend and database
+- ✅ Add multiple backend instances easily
+- ✅ Better resource management
+- ✅ Lower cost than RDS (~$17/month vs $15-20/month)
+- ✅ Full control over PostgreSQL configuration
+
+**See**: `SEPARATE_DB_EC2_GUIDE.md` and `SEPARATE_DB_CHECKLIST.md` for detailed instructions
 
 ## Script Details
 

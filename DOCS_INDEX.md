@@ -44,6 +44,22 @@ Quick navigation to all project documentation.
 
 ---
 
+## ☁️ Deployment & Scaling
+
+| Document | Purpose | When to Use |
+|----------|---------|-------------|
+| **[AWS_DEPLOYMENT_GUIDE.md](AWS_DEPLOYMENT_GUIDE.md)** | AWS ECS + RDS deployment | Deploying to AWS with managed services |
+| **[DEPLOYMENT_ARCHITECTURE.md](DEPLOYMENT_ARCHITECTURE.md)** | Architecture overview | Understanding deployment options |
+| **[SEPARATE_DB_EC2_GUIDE.md](SEPARATE_DB_EC2_GUIDE.md)** ⭐ NEW | Separate database to EC2 | Scaling backend independently |
+| **[SEPARATE_DB_CHECKLIST.md](SEPARATE_DB_CHECKLIST.md)** ⭐ NEW | Migration checklist | Step-by-step migration guide |
+| **[SEPARATE_DB_ARCHITECTURE.md](SEPARATE_DB_ARCHITECTURE.md)** ⭐ NEW | Architecture diagrams | Visual understanding of separation |
+| **[SECURE_DB_SETUP_GUIDE.md](SECURE_DB_SETUP_GUIDE.md)** ⭐ RECOMMENDED | Secure DB setup with SQL migrations | Production-ready secure setup |
+| **[DB_MIGRATION_QUICK_START.md](DB_MIGRATION_QUICK_START.md)** ⭐ RECOMMENDED | Quick migration guide | 5-step secure setup |
+| **[database/migrations/README.md](database/migrations/README.md)** ⭐ NEW | SQL migration files | Manual database setup |
+| **[scripts/README.md](scripts/README.md)** | Deployment scripts | Automated deployment |
+
+---
+
 ## 🎯 Quick Commands
 
 ### Check Android Setup
@@ -177,6 +193,15 @@ FarmTime/
 
 ### "How do I troubleshoot?"
 → [START_APP.md](START_APP.md) or [ANDROID_SETUP.md](ANDROID_SETUP.md) troubleshooting sections
+
+### "How do I separate my database?" ⭐ NEW
+→ [SEPARATE_DB_EC2_GUIDE.md](SEPARATE_DB_EC2_GUIDE.md)
+
+### "How do I scale my backend?" ⭐ NEW
+→ [SEPARATE_DB_ARCHITECTURE.md](SEPARATE_DB_ARCHITECTURE.md)
+
+### "Database migration checklist?" ⭐ NEW
+→ [SEPARATE_DB_CHECKLIST.md](SEPARATE_DB_CHECKLIST.md)
 
 ---
 

@@ -10,13 +10,15 @@ services:
     container_name: farmtime-backend-aws
     environment:
       SPRING_PROFILES_ACTIVE: aws
-      # Connect to PostgreSQL on EC2 host (using localhost since network_mode: host)
-      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/farmtime_db
-      SPRING_DATASOURCE_USERNAME: admin
-      SPRING_DATASOURCE_PASSWORD: password123
-      JWT_SECRET: ${JWT_SECRET:-farmtime-secret-key-for-jwt-token-generation-change-this-in-production}
+      # Database connection - Use environment variables for security
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      # JWT Configuration
+      JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:19006,http://localhost:8081,http://13.127.116.232:8080,http://13.127.116.232:19006}
+      # CORS Configuration
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
       JAVA_OPTS: "-Xms512m -Xmx1024m"
     ports:
       - "8080:8080"

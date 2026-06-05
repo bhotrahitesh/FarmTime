@@ -44,7 +44,16 @@ export default function AddTimeOffScreen({ navigation }) {
   const filterEmployeesByDateAndStatus = () => {
     const selectedDate = startDate.toISOString().split('T')[0];
     const filtered = employees.filter(emp => {
-      return emp.isActive && emp.joiningDate <= selectedDate;
+      if (!emp.isActive) return false;
+      
+      let empJoiningDate = emp.joiningDate;
+      if (typeof empJoiningDate === 'string') {
+        empJoiningDate = empJoiningDate.split('T')[0];
+      } else if (empJoiningDate instanceof Date) {
+        empJoiningDate = empJoiningDate.toISOString().split('T')[0];
+      }
+      
+      return empJoiningDate <= selectedDate;
     });
     setFilteredEmployees(filtered);
     

@@ -44,7 +44,16 @@ export default function AddPaymentScreen({ navigation }) {
   const filterEmployeesByDateAndStatus = () => {
     const selectedDate = paymentDate.toISOString().split('T')[0];
     const filtered = employees.filter(emp => {
-      return emp.isActive && emp.joiningDate <= selectedDate;
+      if (!emp.isActive) return false;
+      
+      let empJoiningDate = emp.joiningDate;
+      if (typeof empJoiningDate === 'string') {
+        empJoiningDate = empJoiningDate.split('T')[0];
+      } else if (empJoiningDate instanceof Date) {
+        empJoiningDate = empJoiningDate.toISOString().split('T')[0];
+      }
+      
+      return empJoiningDate <= selectedDate;
     });
     setFilteredEmployees(filtered);
     

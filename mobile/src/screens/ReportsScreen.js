@@ -10,6 +10,7 @@ import * as Sharing from 'expo-sharing';
 
 export default function ReportsScreen() {
   const [employees, setEmployees] = useState([]);
+  const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
   const [startDate, setStartDate] = useState(new Date(new Date().setDate(1))); // First day of month
@@ -22,6 +23,10 @@ export default function ReportsScreen() {
     loadEmployees();
   }, []);
 
+  useEffect(() => {
+    filterEmployeesByJoiningDate();
+  }, [employees, startDate]);
+
   const loadEmployees = async () => {
     try {
       const response = await getActiveEmployees();
@@ -31,6 +36,29 @@ export default function ReportsScreen() {
       Alert.alert('Error', errorMessage);
       setEmployees([]);
     }
+  };
+
+  const filterEmployeesByJoiningDate = () => {
+    const selectedDate = startDate.toISOString().split('T')[0];
+    const filtered = employees.filter(emp => {
+      if (!emp.isActive) return false;
+      
+      let empJoiningDate = emp.joiningDate;
+      if (typeof empJoiningDate === 'string') {
+        empJoiningDate = empJoiningDate.split('T')[0];
+      } else if (empJoiningDate instanceof Date) {
+        empJoiningDate = empJoiningDate.toISOString().split('T')[0];
+      }
+      
+      return empJoiningDate <= selectedDate;
+    });
+    setFilteredEmployees(filtered);
+    
+    // Clear selections for employees no longer in filtered list
+    setSelectedEmployees(prev => 
+      prev.filter(empId => filtered.find(emp => emp.id === empId))
+    );
+    setSelectAll(false);
   };
 
   const toggleEmployee = (employeeId) => {
@@ -49,7 +77,7 @@ export default function ReportsScreen() {
       setSelectedEmployees([]);
       setSelectAll(false);
     } else {
-      setSelectedEmployees(employees.map((emp) => emp.id));
+      setSelectedEmployees(filteredEmployees.map((emp) => emp.id));
       setSelectAll(true);
     }
   };
@@ -196,15 +224,19 @@ export default function ReportsScreen() {
             )}
 
             <View style={styles.employeeList}>
-              {employees.map((employee) => (
-                <View key={employee.id} style={styles.employeeItem}>
-                  <Checkbox
-                    status={selectedEmployees.includes(employee.id) ? 'checked' : 'unchecked'}
-                    onPress={() => toggleEmployee(employee.id)}
-                  />
-                  <Text style={styles.employeeName}>{employee.name}</Text>
-                </View>
-              ))}
+              {filteredEmployees.length > 0 ? (
+                filteredEmployees.map((employee) => (
+                  <View key={employee.id} style={styles.employeeItem}>
+                    <Checkbox
+                      status={selectedEmployees.includes(employee.id) ? 'checked' : 'unchecked'}
+                      onPress={() => toggleEmployee(employee.id)}
+                    />
+                    <Text style={styles.employeeName}>{employee.name}</Text>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.noEmployeesText}>No employees available for the selected date</Text>
+              )}
             </View>
           </Card.Content>
         </Card>
@@ -288,5 +320,11 @@ const styles = StyleSheet.create({
   reportButton: {
     marginBottom: 12,
     paddingVertical: 6,
+  },
+  noEmployeesText: {
+    fontSize: 14,
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 8,
   },
 });
