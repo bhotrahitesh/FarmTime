@@ -13,7 +13,7 @@ export default function ReportsScreen() {
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
-  const [startDate, setStartDate] = useState(new Date(new Date().setDate(1))); // First day of month
+  const [startDate, setStartDate] = useState(new Date()); // Today's date
   const [endDate, setEndDate] = useState(new Date());
   const [showStartDatePicker, setShowStartDatePicker] = useState(false);
   const [showEndDatePicker, setShowEndDatePicker] = useState(false);
@@ -24,8 +24,9 @@ export default function ReportsScreen() {
   }, []);
 
   useEffect(() => {
-    filterEmployeesByJoiningDate();
-  }, [employees, startDate]);
+    // Show all active employees in reports screen
+    setFilteredEmployees(employees.filter(emp => emp.isActive));
+  }, [employees]);
 
   const loadEmployees = async () => {
     try {
@@ -36,29 +37,6 @@ export default function ReportsScreen() {
       Alert.alert('Error', errorMessage);
       setEmployees([]);
     }
-  };
-
-  const filterEmployeesByJoiningDate = () => {
-    const selectedDate = startDate.toISOString().split('T')[0];
-    const filtered = employees.filter(emp => {
-      if (!emp.isActive) return false;
-      
-      let empJoiningDate = emp.joiningDate;
-      if (typeof empJoiningDate === 'string') {
-        empJoiningDate = empJoiningDate.split('T')[0];
-      } else if (empJoiningDate instanceof Date) {
-        empJoiningDate = empJoiningDate.toISOString().split('T')[0];
-      }
-      
-      return empJoiningDate <= selectedDate;
-    });
-    setFilteredEmployees(filtered);
-    
-    // Clear selections for employees no longer in filtered list
-    setSelectedEmployees(prev => 
-      prev.filter(empId => filtered.find(emp => emp.id === empId))
-    );
-    setSelectAll(false);
   };
 
   const toggleEmployee = (employeeId) => {
@@ -235,7 +213,7 @@ export default function ReportsScreen() {
                   </View>
                 ))
               ) : (
-                <Text style={styles.noEmployeesText}>No employees available for the selected date</Text>
+                <Text style={styles.noEmployeesText}>No active employees found</Text>
               )}
             </View>
           </Card.Content>
